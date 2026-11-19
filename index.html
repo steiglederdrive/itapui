@@ -892,11 +892,11 @@ function drawSite(){
   const Q=(d)=>`<svg viewBox="0 0 24 24">${d}</svg>`;
   const mq=['Padel','Tênis','Beach Tennis','Piscinas','Restaurante','Salões e Quiosque','Desde 1926'].map(x=>`<span>${x}</span>`).join('');
   $('#site').innerHTML=`<header class="v-head"><div class="v-wrap"><div class="v-brand" data-anchor="inicio"><img src="${IMG.escudo}" alt="Escudo do Clube Itapuí"><div><b>Clube Itapuí</b><small>ESPORTE • SAÚDE • BEM-ESTAR</small></div></div>
-   <nav class="v-nav"><a class="on" data-anchor="inicio">Início</a><a data-anchor="estruturas">Estruturas</a><a data-anchor="clube">O Clube</a><a data-anchor="planos">Planos</a><a data-anchor="saloes">Salões</a><a data-anchor="associe-se">Contato</a></nav>
+   <nav class="v-nav"><a class="on" data-anchor="inicio">Início</a><a data-anchor="estruturas">Estruturas</a><a data-anchor="clube">O Clube</a><a data-anchor="planos">Planos</a><a data-anchor="saloes">Salões</a><a data-wa="Olá! Gostaria de falar com o Clube Itapuí.">Contato</a></nav>
    <button class="v-btn ink" type="button" data-m="loginsocio">Área do Sócio</button></div></header>
   <section id="inicio" class="v-hero"><div class="v-bg">${SLIDES.map((k,i)=>`<i class="${i?'':'on'}" style="background-image:url(${IMG[k]})"></i>`).join('')}</div><div class="v-shade"></div><div class="v-slash"></div>
    <div class="v-wrap v-in"><span class="v-tag">1926 — 2026 · 100 ANOS</span><h1><small>Clube</small>Itapuí<em>.</em></h1><p class="lema">Mais esporte. Mais saúde. Mais momentos juntos.</p>
-    <div class="v-cta"><button class="v-btn red" type="button" data-anchor="associe-se">Quero ser sócio</button><button class="v-btn glass" type="button" data-anchor="estruturas">Conheça o Clube →</button></div></div>
+    <div class="v-cta"><button class="v-btn red" type="button" data-anchor="planos">Quero ser sócio</button><button class="v-btn glass" type="button" data-anchor="estruturas">Conheça o Clube →</button></div></div>
    <div class="v-dots">${SLIDES.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div>
    <div class="v-quick"><div class="v-wrap"><a data-m="loginsocio">${Q('<path d="M5 20V9l7-5 7 5v11zM9 20v-6h6v6"/>').replace('<path d="M5 20V9l7-5 7 5v11zM9 20v-6h6v6"/>','<rect x="3.500" y="5" width="17" height="15" rx="2"/><path d="M3.500 10h17M8 3v4M16 3v4"/>')}<div><b>Reservar quadra</b><span>Padel, tênis e beach tennis</span></div></a>
     <a data-anchor="saloes">${Q('<path d="M4 20l5-14 9 9zM14 5l1-2M18 8l2-1M17 3l-.5 1.500"/>')}<div><b>Alugar o salão</b><span>Para até 1320 pessoas</span></div></a>
@@ -920,14 +920,10 @@ function drawSite(){
    <div class="v-plans" id="vPlanos">${planosHtml('ind')}</div></div></section>
   <section id="saloes" class="v-sec v-night"><div class="v-wrap v-salao"><div class="v-big">1320<small>pessoas no Salão Principal</small></div>
    <div><p class="v-eyebrow" style="color:#fff">Salões e Quiosque</p><h2 class="v-h2">Sua festa no Itapuí.</h2><p class="v-lead">Espaço para aniversários, formaturas e confraternizações. Fale com a gente para reservar a sua data.</p>
-    <div class="v-price"><small>Locação a partir de</small>${brl(1900)}</div><button class="v-btn red" type="button" data-anchor="associe-se" style="background:#fff;color:#b3141a;box-shadow:none">Consultar uma data →</button></div></div></section>
+    <div class="v-price"><small>Locação a partir de</small>${brl(1900)}</div><button class="v-btn red" type="button" data-wa="Olá! Gostaria de informações sobre o aluguel dos salões do Clube Itapuí." style="background:#fff;color:#b3141a;box-shadow:none">Consultar uma data →</button></div></div></section>
   <section class="v-sec"><div class="v-wrap v-duo"><div class="v-box ev"><p class="v-eyebrow">Agenda</p><h3>Próximos eventos</h3><p>Em breve novos eventos.</p></div>
    <div class="v-box acc"><p class="v-eyebrow" style="color:#e8353b">Para quem já é sócio</p><h3>Acesse sua conta</h3><p>Consulte seus dados, mensalidades e recibos, mostre a carteirinha digital e faça reservas.</p><button class="v-btn red" type="button" data-m="loginsocio">Área do Sócio →</button></div></div></section>
-  <section id="associe-se" class="v-sec v-contact"><div class="v-wrap"><p class="v-eyebrow" style="color:#fff;opacity:.85">Contato</p><h2 class="v-h2">Faça parte do clube.</h2><p class="v-lead" style="color:#fde3e4">Deixe seus dados e nossa equipe entra em contato para apresentar os planos e fazer a sua matrícula.</p>
-   <form id="fAssoc" class="v-form"><input id="aH" name="site" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0"><div class="f"><label for="aN">Nome completo *</label><input id="aN" required></div><div><label for="aT">Telefone / WhatsApp</label><input id="aT" type="tel"></div><div><label for="aE">E-mail</label><input id="aE" type="email"></div>
-    <div class="f"><label for="aP">Plano de interesse</label><select id="aP"><option>Ainda não sei — quero conhecer</option>${Object.values(PLANOS).map(p=>`<option>${p.nome}</option>`).join('')}</select></div>
-    <div class="f"><label for="aM">Mensagem (opcional)</label><textarea id="aM" rows="3"></textarea></div><div class="f"><button class="v-btn ink" type="submit" style="width:100%">Quero ser sócio</button></div></form></div></section>
-  <footer class="v-foot"><div class="v-wrap"><div class="v-brand"><img src="${IMG.escudo}" alt=""><b style="font:800 18px var(--f-disp)">Clube Itapuí</b></div><small>© 2026 Clube Itapuí · Administração · <a data-m="login">Acesso da gestão</a></small></div></footer>`;
+    <footer class="v-foot"><div class="v-wrap"><div class="v-brand"><img src="${IMG.escudo}" alt=""><b style="font:800 18px var(--f-disp)">Clube Itapuí</b></div><small>© 2026 Clube Itapuí · Administração · <a data-m="login">Acesso da gestão</a></small></div></footer>`;
   let i=0;const bgs=[...document.querySelectorAll('#site .v-bg i')],dots=[...document.querySelectorAll('#site .v-dots i')];
   S.slideT=setInterval(()=>{i=(i+1)%SLIDES.length;bgs.forEach((b,k)=>b.classList.toggle('on',k===i));dots.forEach((d,k)=>d.classList.toggle('on',k===i))},5500);
 }
@@ -938,7 +934,7 @@ function drawLogin(){
    <form class="lg-form" id="fLogin"><span class="chip">PAINEL ADMINISTRATIVO</span><h1>Bem-vindo de volta</h1><p>Entre com seu e-mail e senha para acessar o painel.</p>
     <label for="lgE">E-mail</label><input id="lgE" type="email" placeholder="voce@clube.com" autocomplete="username" required><label for="lgS">Senha</label><input id="lgS" type="password" placeholder="Sua senha" autocomplete="current-password" required>
     <div id="lgErr" role="alert" style="color:#b42318;font-size:14px;min-height:20px;margin:6px 0"></div>
-    <button class="s-btn red" type="submit">Entrar →</button><div class="alt" style="border:0;padding-top:8px"><a data-toast="Peça ao gestor do clube para gerar uma nova senha para você.">Esqueci minha senha</a></div><div class="alt">É sócio? <a data-m="loginsocio">Acesse a Área do Sócio</a></div></form></div></div>`;
+    <button class="s-btn red" type="submit">Entrar →</button><div class="alt">É sócio? <a data-m="loginsocio">Acesse a Área do Sócio</a></div></form></div></div>`;
 }
 function drawLoginSocio(){
   $('#login').innerHTML=`<div class="lg"><div class="lg-l" style="background-image:url(${IMG.tenis})"><div class="lg-brand"><div class="bx"><img src="${IMG.escudo}" alt=""></div><div><b>Clube Itapuí</b><small>DESDE 1926</small></div></div>
@@ -947,11 +943,11 @@ function drawLoginSocio(){
    <form class="lg-form" id="fLoginSocio"><span class="chip">ÁREA DO SÓCIO</span><h1>Acesse sua conta</h1><p>Entre com seu CPF e senha para consultar mensalidades, carteirinha e reservas.</p>
     <label for="lsC">CPF</label><input id="lsC" inputmode="numeric" placeholder="000.000.000-00" autocomplete="username" required><label for="lsS">Senha</label><input id="lsS" type="password" placeholder="Sua senha" autocomplete="current-password" required>
     <div id="lgErr" role="alert" style="color:#b42318;font-size:14px;min-height:20px;margin:6px 0"></div>
-    <button class="s-btn red" type="submit">Entrar →</button><div class="alt" style="border:0;padding-top:8px"><a data-toast="Procure a secretaria do clube: ela gera uma nova senha provisória para você.">Esqueci minha senha</a></div>
+    <button class="s-btn red" type="submit">Entrar →</button>
     <div class="alt" style="margin-top:8px">Primeiro acesso? A secretaria do clube cria o seu acesso e entrega uma senha provisória.</div>
     <div class="alt" style="margin-top:8px">Faz parte da gestão? <a data-m="login">Acesso da gestão</a></div></form></div></div>`;
 }
-function dlgSenhaNova(obrig){
+function dlgSenhaNova(obrig,depois){
   S.forcePw=!!obrig;
   modal(`<h2>${obrig?'Crie sua senha':'Trocar senha'}</h2><p class="note" style="margin:0">${obrig?'Você entrou com uma senha provisória. Crie uma senha só sua para continuar.':'Use pelo menos 8 caracteres.'}</p>
   <form id="fPw" class="form"><label class="full">Nova senha<input id="pw1" type="password" minlength="8" required autocomplete="new-password"></label><label class="full">Repita a nova senha<input id="pw2" type="password" minlength="8" required autocomplete="new-password"></label>
@@ -964,7 +960,33 @@ function dlgSenhaNova(obrig){
      if(a!==b){er.textContent='As senhas não conferem.';return}
      const {error}=await sb.auth.updateUser({password:a,data:{trocar_senha:false}});
      if(error){er.textContent=/same|different/i.test(error.message)?'Escolha uma senha diferente da provisória.':msgErro(error);return}
-     S.forcePw=false;closeM();toast('Senha alterada')})});
+     S.forcePw=false;closeM();toast('Senha alterada');if(depois)depois()})});
+}
+function dlgEsqueci(tipo){
+  const soc=tipo==='socio';
+  modal(`<h2>Esqueci minha senha</h2><p class="note" style="margin:0">${soc?'Informe o seu CPF. Enviamos um link para criar uma nova senha no e-mail cadastrado no clube.':'Informe o e-mail do seu acesso. Enviamos um link para criar uma nova senha.'}</p>
+  <form id="fEsq" class="form"><label class="full">${soc?'CPF':'E-mail'}<input id="esqL" ${soc?'data-cpf="1" inputmode="numeric" placeholder="000.000.000-00"':'type="email" placeholder="voce@clube.com"'} required autocomplete="${soc?'username':'email'}"></label>
+  <div id="esqMsg" class="full" role="status" style="font-size:14px;min-height:20px"></div>
+  <div class="full row" style="justify-content:flex-end"><button class="btn" data-x type="button">Fechar</button><button class="btn primary" type="submit">Enviar link</button></div></form>`,
+  d=>{d.addEventListener('click',e=>{if(e.target.dataset.x!==undefined)closeM()});
+   $('#fEsq',d).addEventListener('submit',async e=>{e.preventDefault();
+     const b=e.target.querySelector('button[type=submit]'),m=$('#esqMsg');m.style.color='';m.textContent='';b.disabled=true;b.textContent='Enviando…';
+     let erro='';
+     try{const {data,error}=await sb.functions.invoke('recuperar-senha',{body:{tipo,login:$('#esqL').value}});
+       if(error){erro='Não foi possível enviar agora. Tente de novo em instantes.';try{const j=await error.context.json();if(j.erro)erro=j.erro}catch(x){}}
+     }catch(x){erro='Sem conexão com o servidor. Tente de novo.'}
+     if(erro){b.disabled=false;b.textContent='Enviar link';m.style.color='#b42318';m.textContent=erro;return}
+     m.style.color='#166534';m.textContent='Se o cadastro existir e tiver e-mail, enviamos o link (vale por 1 hora). Confira também a caixa de spam.'+(soc?' Sem e-mail cadastrado? Procure a secretaria do clube.':'');
+     b.textContent='Link enviado';setTimeout(()=>{b.disabled=false;b.textContent='Enviar de novo'},60000)})});
+}
+async function recuperar(tok){
+  try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
+  setMode('site');
+  const {error}=await sb.auth.verifyOtp({token_hash:tok,type:'recovery'});
+  if(error){setMode('login');toast('Este link é inválido, expirou ou já foi usado. Peça um novo em "Esqueci minha senha".');return}
+  const ok=await carregaSessao();
+  if(!ok){setMode('login');toast('Não foi possível validar o link. Peça um novo.');return}
+  dlgSenhaNova(true,async()=>{try{await loadAll()}catch(e){}S.tab=pTabs()[0]||'painel';S.pdep=-1;setMode(S.perfil?'app':'socio')});
 }
 function drawPortal(){
   const s=byId(S.meuTitulo);
@@ -1053,19 +1075,23 @@ $('#view').addEventListener('change',e=>{
 $('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)go(b.dataset.tab)});
 $('#themeBtn').addEventListener('click',()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=dark?'light':'dark'});
 
+const WA_NUM='555134911494';
+function abreWa(m){window.open('https://wa.me/'+WA_NUM+'?text='+encodeURIComponent(m),'_blank','noopener')}
 function scrollTo_(id){const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});document.querySelectorAll('#site .v-nav a').forEach(a=>a.classList.toggle('on',a.dataset.anchor===id))}
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-m],[data-anchor],[data-plano],[data-pd],[data-toast],[data-pm],#sairBtn');if(!t)return;
+  const t=e.target.closest('[data-m],[data-anchor],[data-plano],[data-wa],[data-pd],[data-toast],[data-pm],[data-esq],#sairBtn');if(!t)return;
+  if(t.dataset.esq)return dlgEsqueci(t.dataset.esq);
   if(t.dataset.pm){document.querySelectorAll('#site [data-pm]').forEach(b=>b.setAttribute('aria-pressed',String(b===t)));$('#vPlanos').innerHTML=planosHtml(t.dataset.pm);return}
   if(t.id==='sairBtn')return sair();
   if(t.dataset.m)return setMode(t.dataset.m);
   if(t.dataset.anchor)return scrollTo_(t.dataset.anchor);
-  if(t.dataset.plano){const sel=document.querySelector('#aP');if(sel)sel.value=PLANOS[t.dataset.plano].nome;return scrollTo_('associe-se')}
+  if(t.dataset.wa)return abreWa(t.dataset.wa);
+  if(t.dataset.plano){const pl=PLANOS[t.dataset.plano];return abreWa('Olá! Tenho interesse no plano '+pl.nome+' ('+brl(pl.valor)+'/mês) do Clube Itapuí. Pode me passar mais informações?')}
   if(t.dataset.pd!==undefined){S.pdep=+t.dataset.pd;return drawPortal()}
   if(t.dataset.toast)return toast(t.dataset.toast);
 });
 document.addEventListener('input',e=>{
-  if(e.target.id==='lsC'||e.target.id==='ncpf'){const d=soDig(e.target.value).slice(0,11);e.target.value=d.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2')}
+  if(e.target.id==='lsC'||e.target.id==='ncpf'||e.target.dataset.cpf){const d=soDig(e.target.value).slice(0,11);e.target.value=d.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2')}
 });
 document.addEventListener('submit',async e=>{
   const id=e.target.id;
@@ -1094,8 +1120,10 @@ document.addEventListener('submit',async e=>{
 });
 document.addEventListener('change',e=>{});
 const h=location.hash.slice(1);if(VIEWS[h])S.tab=h;
-setMode(h==='login'||VIEWS[h]?'login':(h==='loginsocio'||h==='socio'?'loginsocio':'site'));
+const REC=h.startsWith('recuperar/');
+setMode(REC?'site':(h==='login'||VIEWS[h]?'login':(h==='loginsocio'||h==='socio'?'loginsocio':'site')));
 (async()=>{
+  if(REC){await recuperar(decodeURIComponent(h.slice(10)));return}
   let ok=false;
   try{ok=await carregaSessao();if(ok)await loadAll()}catch(e){ok=false}
   if(!ok)return;
