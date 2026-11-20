@@ -950,7 +950,7 @@ function dlgAlugar(data){
 /* ---------- INTERESSADOS (formulário do site) ---------- */
 function vInter(){
   const l=[...interessados].sort((a,b)=>(a.tratado-b.tratado)||String(b.criado_em).localeCompare(String(a.criado_em)));
-  return `<div class="head"><div><h1>Interessados</h1><p>Pessoas que preencheram o formulário "Associe-se" do site</p></div></div>
+  return `<div class="head"><div><h1>Interessados</h1><p>Pessoas que pediram contato pelo site (planos, aluguel de salão e contato). A conversa segue pelo WhatsApp do clube</p></div></div>
   <div class="panel"><div class="tablewrap"><table><thead><tr><th>Nome</th><th>Contato</th><th class="hide-s">Plano e mensagem</th><th>Quando</th><th></th></tr></thead><tbody>
   ${l.length?l.map(i=>`<tr style="${i.tratado?'opacity:.6':''}"><td><b>${esc(i.nome)}</b>${i.tratado?'<br><span class="pill mute">Atendido</span>':''}</td><td>${esc(i.telefone||'')}${i.telefone&&i.email?'<br>':''}${esc(i.email||'')}</td><td class="hide-s">${esc(i.plano||'')}${i.mensagem?'<br><span class="note">'+esc(i.mensagem)+'</span>':''}</td><td>${fmtData(String(i.criado_em).slice(0,10))}</td>
    <td style="text-align:right;white-space:nowrap">${i.tratado?'':`<button class="btn sm primary" data-a="intNovo" data-v="${i.id}" type="button">Cadastrar sócio</button> `}<button class="btn sm" data-a="intTrat" data-v="${i.id}" type="button">${i.tratado?'Reabrir':'Marcar atendido'}</button></td></tr>`).join(''):'<tr><td colspan="5" class="note">Ninguém preencheu o formulário ainda.</td></tr>'}
@@ -1225,6 +1225,21 @@ $('#view').addEventListener('change',e=>{
 $('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)go(b.dataset.tab)});
 $('#themeBtn').addEventListener('click',()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=dark?'light':'dark'});
 
+/* Contato pelo site: guarda o interesse (aparece em "Interessados" no painel) e abre o WhatsApp do clube */
+function dlgInteresse(assunto,msgWa){
+  modal(`<h2>Fale com o Clube Itapuí</h2><p class="note" style="margin:0">Informe seu nome e telefone. Em seguida abrimos o WhatsApp do clube para você conversar com a gente.</p>
+  <form id="fInt" class="form"><label class="full">Seu nome<input id="iN" required minlength="2" maxlength="120" autocomplete="name"></label>
+  <label class="full">Telefone / WhatsApp<input id="iT" required maxlength="30" inputmode="tel" autocomplete="tel" placeholder="(51) 90000-0000"></label>
+  <input id="iH" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+  <div class="full row" style="justify-content:flex-end"><button class="btn" data-x type="button">Cancelar</button><button class="btn primary" type="submit">Continuar no WhatsApp</button></div></form>`,
+  d=>{d.addEventListener('click',e=>{if(e.target.dataset.x!==undefined)closeM()});
+   $('#fInt',d).addEventListener('submit',e=>{e.preventDefault();
+     const nome=$('#iN',d).value.trim(),tel=$('#iT',d).value.trim();
+     if(nome.length<2||!tel)return;
+     abreWa(msgWa);  /* abre o WhatsApp na hora (evita bloqueio de pop-up) */
+     if(!$('#iH',d).value){sb.from('interessados').insert({nome,telefone:tel,plano:String(assunto).slice(0,80),mensagem:String(msgWa).slice(0,1000)}).then(()=>{},()=>{})}
+     closeM();toast('Obrigado! Continue a conversa no WhatsApp.')})});
+}
 const WA_NUM='555134911494';
 function abreWa(m){window.open('https://wa.me/'+WA_NUM+'?text='+encodeURIComponent(m),'_blank','noopener')}
 function scrollTo_(id){const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});document.querySelectorAll('#site .v-nav a').forEach(a=>a.classList.toggle('on',a.dataset.anchor===id))}
@@ -1235,8 +1250,8 @@ document.addEventListener('click',e=>{
   if(t.id==='sairBtn')return sair();
   if(t.dataset.m)return setMode(t.dataset.m);
   if(t.dataset.anchor)return scrollTo_(t.dataset.anchor);
-  if(t.dataset.wa)return abreWa(t.dataset.wa);
-  if(t.dataset.plano){const pl=PLANOS[t.dataset.plano];return abreWa('Olá! Tenho interesse no plano '+pl.nome+' ('+brl(pl.valor)+'/mês) do Clube Itapuí. Pode me passar mais informações?')}
+  if(t.dataset.wa)return dlgInteresse(/sal(ão|ao|ões|oes)/i.test(t.dataset.wa)?'Aluguel de salão':'Contato pelo site',t.dataset.wa);
+  if(t.dataset.plano){const pl=PLANOS[t.dataset.plano];return dlgInteresse('Plano: '+pl.nome,'Olá! Tenho interesse no plano '+pl.nome+' ('+brl(pl.valor)+'/mês) do Clube Itapuí. Pode me passar mais informações?')}
   if(t.dataset.pd!==undefined){S.pdep=+t.dataset.pd;return drawPortal()}
   if(t.dataset.toast)return toast(t.dataset.toast);
 });
