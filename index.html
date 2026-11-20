@@ -62,6 +62,7 @@ main{padding:28px max(24px,env(safe-area-inset-right,0px)) 40px 28px;min-width:0
 .stat .l{color:var(--muted);font-size:12.5px}
 .stat .d{font-size:12px;margin-top:4px}
 .pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;white-space:nowrap}
+.grade{border-collapse:separate;border-spacing:0;min-width:900px;width:100%}.grade th,.grade td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:center;font-size:13px}.grade th.gn,.grade td.gn{text-align:left;position:sticky;left:0;background:var(--surface,var(--bg,#fff));min-width:170px;padding-left:8px;z-index:1}.grade .gc{width:60px}.gk{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;font-weight:700;font-size:13px;border:0;cursor:default}button.gk{cursor:pointer}.gk.ok{background:var(--ok-soft);color:var(--ok)}.gk.warn{background:var(--warn-soft);color:var(--warn)}.gk.bad{background:var(--bad-soft);color:var(--bad)}.gk.mute{background:var(--accent-soft,#eee);color:var(--muted,#777)}.g0{color:var(--muted,#aaa);opacity:.6}.grade tfoot td{border-bottom:0;font-size:11.5px}
 .pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.mute{background:var(--accent-soft);color:var(--accent)}
 .tablewrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
@@ -763,7 +764,7 @@ async function abrirScanner(){
   ciclo();
 }
 /* ---------- MENSALIDADES ---------- */
-function vMens(){
+function vMensLista(){
   const comps=[...new Set([...mens.map(m=>m.comp),mesISO(TODAY)])].sort().reverse();
   if(!comps.includes(S.compM))S.compM=comps[0];
   const f=S.filtroM,edita=pode('gestor','tesouraria');
@@ -779,6 +780,37 @@ function vMens(){
   ${l.length?l.map(m=>{const s=byId(m.sid)||{nome:'—',id:m.sid,plano:''},[c,t]=pillM(m.status);return `<tr><td><b>${esc(s.nome)}</b><br><span class="note">título ${s.id}</span></td><td>${esc((PLANOS[s.plano]||{nome:''}).nome)}</td><td>${fmtData(m.venc)}</td><td>${brl(m.valor)}</td><td><span class="pill ${c}">${t}</span>${m.pago?`<br><span class="note">em ${fmtData(m.pago)}${m.forma?' · '+m.forma:''}</span>`:''}</td>
    <td style="text-align:right;white-space:nowrap">${edita&&(m.status==='aberta'||m.status==='atrasada')?`<button class="btn sm primary" data-a="pay" data-v="${m.id}" type="button">Dar baixa</button>`:''}</td></tr>`}).join(''):`<tr><td colspan="6" class="note">${dosMes.length?'Nenhuma mensalidade neste filtro.':'Nenhuma mensalidade gerada nesta competência.'}</td></tr>`}
   </tbody></table></div></div>`;
+}
+
+function vMens(){
+  const g=S.visM==='grade';
+  return `<div class="seg" style="margin-bottom:14px" role="group" aria-label="Visão">${[['lista','Lista do mês'],['grade','Grade anual']].map(([k,t])=>`<button type="button" data-a="visM" data-v="${k}" aria-pressed="${(g?'grade':'lista')===k}">${t}</button>`).join('')}</div>`+(g?vGrade():vMensLista());
+}
+function vGrade(){
+  const anos=[...new Set([...mens.map(m=>m.comp.slice(0,4)),String(TODAY.getFullYear())])].sort().reverse();
+  if(!S.anoG||!anos.includes(S.anoG))S.anoG=String(TODAY.getFullYear());
+  const ano=S.anoG,edita=pode('gestor','tesouraria');
+  const idx=new Map();mens.forEach(m=>{if(m.comp.slice(0,4)===ano)idx.set(m.sid+'|'+m.comp.slice(5),m)});
+  const q=(S.buscaG||'').toLowerCase();
+  const lista=socios.filter(s=>!q||s.nome.toLowerCase().includes(q)||String(s.id)===q).sort((a,b)=>a.nome.localeCompare(b.nome));
+  const mm=['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const cel=(s,k)=>{const m=idx.get(s.id+'|'+k);
+    if(!m)return '<td class="gc"><span class="g0">·</span></td>';
+    const tip=esc(MESES[+k-1])+': '+brl(m.valor)+' · venc. '+fmtData(m.venc)+(m.pago?' · pago em '+fmtData(m.pago):'');
+    const mark={paga:['ok','✓'],aberta:['warn','●'],atrasada:['bad','!'],isenta:['mute','—'],cancelada:['mute','×']}[m.status]||['mute','?'];
+    const pagavel=edita&&(m.status==='aberta'||m.status==='atrasada');
+    return `<td class="gc">${pagavel?`<button type="button" class="gk ${mark[0]}" data-a="pay" data-v="${m.id}" title="${tip} (clique para dar baixa)">${mark[1]}</button>`:`<span class="gk ${mark[0]}" title="${tip}">${mark[1]}</span>`}</td>`};
+  const tot=k=>{const l=mens.filter(m=>m.comp===ano+'-'+k);return {rec:l.filter(m=>m.status==='paga').reduce((a,m)=>a+m.valor,0),pen:l.filter(m=>m.status==='aberta'||m.status==='atrasada').reduce((a,m)=>a+m.valor,0)}};
+  const T=mm.map(tot);
+  return `<div class="head"><div><h1>Mensalidades — grade anual</h1><p>Visão geral de cada sócio mês a mês em ${ano}.</p></div>
+   <div class="row" style="gap:10px;align-items:flex-end"><label>Ano<select id="anoSel">${anos.map(a=>`<option ${a===ano?'selected':''}>${a}</option>`).join('')}</select></label>
+   <label>Buscar sócio<input id="buscaG" value="${esc(S.buscaG||'')}" placeholder="Nome ou título" autocomplete="off"></label></div></div>
+  <div class="panel"><div class="row" style="gap:14px;margin-bottom:10px;flex-wrap:wrap"><span class="note"><span class="gk ok">✓</span> Paga</span><span class="note"><span class="gk warn">●</span> Em aberto</span><span class="note"><span class="gk bad">!</span> Atrasada</span><span class="note"><span class="gk mute">—</span> Isenta</span><span class="note"><span class="g0">·</span> Sem mensalidade</span></div>
+  <div class="tablewrap gradew"><table class="grade"><thead><tr><th class="gn">Sócio</th>${mm.map(k=>`<th class="gc">${MESES[+k-1].slice(0,3)}</th>`).join('')}</tr></thead><tbody>
+  ${lista.length?lista.map(s=>`<tr><td class="gn"><b>${esc(s.nome)}</b><br><span class="note">título ${s.id}${s.ativo?'':' · inativo'}</span></td>${mm.map(k=>cel(s,k)).join('')}</tr>`).join(''):`<tr><td class="note" colspan="13">Nenhum sócio encontrado.</td></tr>`}
+  </tbody><tfoot><tr><td class="gn note">Recebido no mês</td>${T.map(t=>`<td class="gc note">${t.rec?brl(t.rec).replace('R$ ','').replace(',00',''):''}</td>`).join('')}</tr>
+  <tr><td class="gn note">Pendente no mês</td>${T.map(t=>`<td class="gc note" style="${t.pen?'color:var(--bad)':''}">${t.pen?brl(t.pen).replace('R$ ','').replace(',00',''):''}</td>`).join('')}</tr></tfoot></table></div>
+  <p class="note" style="margin:10px 0 0">${edita?'Clique numa mensalidade em aberto ou atrasada para dar baixa. ':''}Passe o mouse (ou toque e segure) numa célula para ver valor e vencimento.</p></div>`;
 }
 function dlgBaixa(id){
   const m=mens.find(x=>x.id===id);if(!m)return;
@@ -1140,6 +1172,7 @@ const VIEWS={painel:vPainel,socios:vSocios,carteirinha:vCart,mensalidades:vMens,
 function render(){
   const v=$('#view'),st=window.scrollY;
   v.innerHTML=(VIEWS[S.tab]||vPainel)();
+  const bg=$('#buscaG');if(bg){bg.addEventListener('input',e=>{S.buscaG=e.target.value;const p=e.target.selectionStart;render();const n=$('#buscaG');n.focus();n.setSelectionRange(p,p)})}
   const b=$('#busca');if(b){b.addEventListener('input',e=>{S.busca=e.target.value;const p=e.target.selectionStart;render();const n=$('#busca');n.focus();n.setSelectionRange(p,p)})}
   window.scrollTo(0,st);
 }
@@ -1152,6 +1185,7 @@ async function acaoView(a,v){
    case 'scan':return abrirScanner();
    case 'cpCod':return navigator.clipboard?navigator.clipboard.writeText(v).then(()=>toast('Código copiado'),()=>toast(v)):toast(v);
    case 'fm':S.filtroM=v;return render();
+   case 'visM':S.visM=v;return render();
    case 'pay':return dlgBaixa(+v);
    case 'gerarMens':return dlgGerar();
    case 'tq':S.tipoQ=v;return render();
@@ -1186,6 +1220,7 @@ document.addEventListener('click',e=>{
 $('#view').addEventListener('change',e=>{
   if(e.target.id==='cartSel'){S.cart=+e.target.value;S.cartDep=-1;render()}
   if(e.target.id==='compSel'){S.compM=e.target.value;render()}
+  if(e.target.id==='anoSel'){S.anoG=e.target.value;render()}
 });
 $('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)go(b.dataset.tab)});
 $('#themeBtn').addEventListener('click',()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=dark?'light':'dark'});
