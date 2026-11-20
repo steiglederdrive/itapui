@@ -950,10 +950,10 @@ function dlgAlugar(data){
 /* ---------- INTERESSADOS (formulário do site) ---------- */
 function vInter(){
   const l=[...interessados].sort((a,b)=>(a.tratado-b.tratado)||String(b.criado_em).localeCompare(String(a.criado_em)));
-  return `<div class="head"><div><h1>Interessados</h1><p>Pessoas que pediram contato pelo site (planos, aluguel de salão e contato). A conversa segue pelo WhatsApp do clube</p></div></div>
+  return `<div class="head"><div><h1>Interessados</h1><p>Pessoas que pediram contato pelo site (planos, aluguel de salão e contato). A conversa segue pelo WhatsApp do clube. Os já atendidos saem sozinhos 90 dias depois de chegarem; os que ainda não foram atendidos ficam até você marcar.</p></div></div>
   <div class="panel"><div class="tablewrap"><table><thead><tr><th>Nome</th><th>Contato</th><th class="hide-s">Plano e mensagem</th><th>Quando</th><th></th></tr></thead><tbody>
-  ${l.length?l.map(i=>`<tr style="${i.tratado?'opacity:.6':''}"><td><b>${esc(i.nome)}</b>${i.tratado?'<br><span class="pill mute">Atendido</span>':''}</td><td>${esc(i.telefone||'')}${i.telefone&&i.email?'<br>':''}${esc(i.email||'')}</td><td class="hide-s">${esc(i.plano||'')}${i.mensagem?'<br><span class="note">'+esc(i.mensagem)+'</span>':''}</td><td>${fmtData(String(i.criado_em).slice(0,10))}</td>
-   <td style="text-align:right;white-space:nowrap">${i.tratado?'':`<button class="btn sm primary" data-a="intNovo" data-v="${i.id}" type="button">Cadastrar sócio</button> `}<button class="btn sm" data-a="intTrat" data-v="${i.id}" type="button">${i.tratado?'Reabrir':'Marcar atendido'}</button></td></tr>`).join(''):'<tr><td colspan="5" class="note">Ninguém preencheu o formulário ainda.</td></tr>'}
+  ${l.length?l.map(i=>`<tr style="${i.tratado?'opacity:.6':''}"><td><b>${esc(i.nome)}</b>${i.tratado?`<br><span class="pill mute">Atendido</span> <span class="note">some em ${Math.max(0,90-Math.floor((Date.now()-new Date(i.criado_em))/864e5))} dias</span>`:''}</td><td>${esc(i.telefone||'')}${i.telefone&&i.email?'<br>':''}${esc(i.email||'')}</td><td class="hide-s">${esc(i.plano||'')}${i.mensagem?'<br><span class="note">'+esc(i.mensagem)+'</span>':''}</td><td>${fmtData(String(i.criado_em).slice(0,10))}</td>
+   <td style="text-align:right;white-space:nowrap">${i.tratado?'':`<button class="btn sm primary" data-a="intNovo" data-v="${i.id}" type="button">Cadastrar sócio</button> `}<button class="btn sm" data-a="intTrat" data-v="${i.id}" type="button">${i.tratado?'Reabrir':'Marcar atendido'}</button>${i.tratado?` <button class="btn sm danger" data-a="intDel" data-v="${i.id}" type="button">Excluir</button>`:''}</td></tr>`).join(''):'<tr><td colspan="5" class="note">Ninguém preencheu o formulário ainda.</td></tr>'}
   </tbody></table></div></div>`;
 }
 
@@ -1200,6 +1200,7 @@ async function acaoView(a,v){
    case 'salSt':{const [id,st]=v.split('|');if(await exec(async()=>{const {error}=await sb.from('salao_reservas').update({status:st}).eq('id',+id);if(error)throw error},'Situação atualizada'))render();return}
    case 'salCanc':{if(!confirm('Cancelar esta reserva do salão? A data volta a ficar livre.'))return;if(await exec(async()=>{const {error}=await sb.from('salao_reservas').update({status:'cancelada'}).eq('id',+v);if(error)throw error},'Reserva cancelada'))render();return}
    case 'intTrat':{const i=interessados.find(x=>x.id==v);if(await exec(async()=>{const {error}=await sb.from('interessados').update({tratado:!i.tratado}).eq('id',+v);if(error)throw error}))render();return}
+   case 'intDel':{if(!confirm('Excluir este registro de interessado? Não dá para desfazer.'))return;if(await exec(async()=>{const {data,error}=await sb.from('interessados').delete().eq('id',+v).select('id');if(error)throw error;if(!data||!data.length)throw new Error('Sem permissão para excluir')},'Registro excluído')){interessados=interessados.filter(x=>x.id!=v);render()}return}
    case 'intNovo':{const i=interessados.find(x=>x.id==v);return dlgNovo({nome:i.nome,tel:i.telefone,email:i.email})}
    case 'novoUsuario':return dlgUsuario();
    case 'eqSenha':{const u=equipeL.find(x=>x.user_id===v);if(!confirm('Gerar nova senha provisória para '+u.nome+'? A senha atual deixa de valer.'))return;try{const r=await fnAcesso({acao:'equipe_redefinir',user_id:v});dlgSenha('Nova senha',r.login,r.senha,u.nome)}catch(e){toast(msgErro(e))}return}
