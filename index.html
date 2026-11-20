@@ -433,7 +433,7 @@ async function loadAll(){
     d.forEach(x=>{const o=mp.get(x.titulo);if(o)o.dep.push({id:x.id,nome:x.nome,rel:x.parentesco,nasc:x.nascimento})});
     mens=m.map(x=>({id:x.id,sid:x.titulo,comp:String(x.competencia).slice(0,7),valor:Number(x.valor),venc:x.vencimento,pago:x.pago_em,forma:x.forma,status:(x.status==='aberta'&&x.vencimento<hj)?'atrasada':x.status}));
     reservas=r.map(x=>({id:x.id,q:x.quadra,data:x.data,h:x.hora,sid:x.titulo}));
-    salao=sa.map(x=>({id:x.id,data:x.data,sid:x.titulo,evento:x.evento,valor:Number(x.valor),status:x.status}));
+    salao=sa.map(x=>({id:x.id,data:x.data,sid:x.titulo,esp:x.espaco||'salao',evento:x.evento,valor:Number(x.valor),status:x.status}));
     equipeL=[];interessados=[];
     if(S.perfil==='gestor'){const e=await sb.from('equipe').select('*').order('criado_em');equipeL=e.data||[]}
     if(['gestor','secretaria'].includes(S.perfil)){const i=await sb.from('interessados').select('*').order('criado_em',{ascending:false});interessados=i.data||[]}
@@ -558,8 +558,8 @@ function vPainel(){
    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
     <div class="panel"><h3 style="margin-bottom:10px">Arrecadação de ${mesNome}</h3><div class="bar"><i style="width:${pct}%"></i></div><p class="note" style="margin:8px 0 0">${prev?pct+'% recebido.':'Ainda não há mensalidades geradas neste mês.'}</p>
      <div class="row" style="margin-top:12px">${atras.slice(0,3).map(a=>`<span class="pill bad">${esc(nomeS(a.sid).split(' ')[0])} · ${a.comp.slice(5)}/${a.comp.slice(0,4)}</span>`).join('')}</div></div>
-    ${verQ?`<div class="panel"><div class="row spread" style="margin-bottom:10px"><h3>Próximos eventos no salão</h3><button class="btn sm" data-a="go" data-v="salao" type="button">Ver calendário</button></div>
-     ${prox.length?prox.map(e=>{const d=new Date(e.data+'T12:00');return `<div class="row" style="padding:7px 0;border-top:1px solid var(--line);flex-wrap:nowrap"><b style="min-width:44px;font-family:var(--f-head)">${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</b><span style="min-width:0">${esc(e.evento)}<br><span class="note">${esc(nomeS(e.sid))}</span></span></div>`}).join(''):'<p class="note" style="margin:0">Nenhum evento marcado.</p>'}</div>`:''}
+    ${verQ?`<div class="panel"><div class="row spread" style="margin-bottom:10px"><h3>Próximos aluguéis (salão e quiosque)</h3><button class="btn sm" data-a="go" data-v="salao" type="button">Ver calendário</button></div>
+     ${prox.length?prox.map(e=>{const d=new Date(e.data+'T12:00');return `<div class="row" style="padding:7px 0;border-top:1px solid var(--line);flex-wrap:nowrap"><b style="min-width:44px;font-family:var(--f-head)">${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</b><span style="min-width:0">${esc(e.evento)}<br><span class="note">${ESP[e.esp]||'Salão'} · ${esc(nomeS(e.sid))}</span></span></div>`}).join(''):'<p class="note" style="margin:0">Nenhum evento marcado.</p>'}</div>`:''}
    </div></div>`;
 }
 
@@ -875,20 +875,22 @@ function dlgCancel(id){
 }
 
 /* ---------- SALÃO ---------- */
+const ESP={salao:'Salão',quiosque:'Quiosque'};
 const STP={paga:['ok','Quitado'],sinal:['warn','Sinal pago'],aguardando:['bad','Aguardando sinal']};
 function vSalao(){
-  const {calAno:a,calMes:m}=S;
+  const {calAno:a,calMes:m}=S;const esp=S.esp||'salao',SAL=salao.filter(x=>x.esp===esp);
   const first=new Date(a,m,1),ndays=new Date(a,m+1,0).getDate();
   let cells=DSEM.map(d=>`<div class="dh">${d}</div>`).join('');
   for(let i=0;i<first.getDay();i++)cells+='<div class="cd out"></div>';
   for(let d=1;d<=ndays;d++){
-    const k=iso(new Date(a,m,d)),e=salao.find(x=>x.data===k);
+    const k=iso(new Date(a,m,d)),e=SAL.find(x=>x.data===k);
     cells+=`<button class="cd ${e?'res':''} ${k===iso(TODAY)?'today':''} ${S.calSel===k?'sel':''}" type="button" data-a="cal" data-v="${k}"><b>${d}</b>${e?`<span class="ev">${esc(nomeS(e.sid).split(' ')[0])}</span>`:''}</button>`;
   }
-  const sel=S.calSel,ev=sel&&salao.find(x=>x.data===sel);
-  const lista=salao.filter(e=>e.data>=iso(TODAY)).sort((x,y)=>x.data.localeCompare(y.data));
+  const sel=S.calSel,ev=sel&&SAL.find(x=>x.data===sel);
+  const lista=SAL.filter(e=>e.data>=iso(TODAY)).sort((x,y)=>x.data.localeCompare(y.data));
   const nx={aguardando:['sinal','Registrar sinal'],sinal:['paga','Marcar quitado']};
-  return `<div class="head"><div><h1>Aluguel do salão</h1><p>Salão Principal · capacidade 1320 pessoas · locação a partir de ${brl(1900)} (sócios têm desconto)</p></div></div>
+  return `<div class="head"><div><h1>Aluguel ${esp==='salao'?'do salão':'do quiosque'}</h1><p>${esp==='salao'?`Salão Principal · capacidade 1320 pessoas · locação a partir de ${brl(1900)} (sócios têm desconto)`:'Quiosque · locação para sócios'}</p></div>
+  <div class="seg" role="group" aria-label="Espaço">${['salao','quiosque'].map(k=>`<button type="button" data-a="esp" data-v="${k}" aria-pressed="${esp===k}">${ESP[k]}</button>`).join('')}</div></div>
   <div class="grid g2"><div class="panel"><div class="row spread" style="margin-bottom:12px"><button class="btn sm" data-a="cm" data-v="-1" type="button" aria-label="Mês anterior">‹</button><h3>${MESES[m]} de ${a}</h3><button class="btn sm" data-a="cm" data-v="1" type="button" aria-label="Próximo mês">›</button></div><div class="cal">${cells}</div></div>
   <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
    <div class="panel"><h3 style="margin-bottom:8px">${sel?new Date(sel+'T12:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long',weekday:'long'}):'Selecione um dia'}</h3>
@@ -899,7 +901,7 @@ function vSalao(){
 }
 function dlgAlugar(data){
   const ativos=socios.filter(s=>s.status==='ativo');
-  modal(`<h2>Registrar aluguel</h2><p class="note" style="margin:0">${new Date(data+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
+  modal(`<h2>Registrar aluguel ${(S.esp||'salao')==='salao'?'do salão':'do quiosque'}</h2><p class="note" style="margin:0">${new Date(data+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
   <form id="fa" class="form"><label class="full">Sócio responsável<select id="as" required>${ativos.length?ativos.map(s=>`<option value="${s.id}">${esc(s.nome)}</option>`).join(''):'<option value="">Nenhum sócio em dia</option>'}</select></label>
   <label class="full">Tipo de evento<input id="ae" required maxlength="120" placeholder="Ex.: Aniversário de 15 anos"></label>
   <label>Valor<input id="av" type="number" value="1900" min="0" step="50"></label>
@@ -909,7 +911,7 @@ function dlgAlugar(data){
    $('#av',d).addEventListener('input',e=>{$('#ass',d).value=brl(+e.target.value*.3)});
    $('#fa',d).addEventListener('submit',async e=>{e.preventDefault();
      const t=+$('#as').value;if(!t){toast('Escolha um sócio');return}
-     const ok=await exec(async()=>{const {error}=await sb.from('salao_reservas').insert({data,titulo:t,evento:$('#ae').value.trim(),valor:+$('#av').value||0});if(error)throw error},'Data reservada. Aguardando o sinal.');
+     const ok=await exec(async()=>{const {error}=await sb.from('salao_reservas').insert({data,espaco:S.esp||'salao',titulo:t,evento:$('#ae').value.trim(),valor:+$('#av').value||0});if(error)throw error},'Data reservada. Aguardando o sinal.');
      if(ok){closeM();render()}})});
 }
 
@@ -1084,12 +1086,14 @@ function drawPortal(){
   const p=pessoas.find(x=>x.idx===S.pdep)||pessoas[0];
   const num=codCart(s,p),ok=s.status==='ativo',pl=PLANOS[s.plano]||{nome:s.plano,tipo:'',mod:''};
   const ms=mens.filter(m=>m.sid===s.id).sort((a,b)=>b.comp.localeCompare(a.comp));
+  const als=salao.filter(x=>x.sid===s.id&&x.data>=iso(TODAY)).sort((a,b)=>a.data.localeCompare(b.data));
   const rs=reservas.filter(r=>r.sid===s.id&&r.data>=iso(TODAY)).sort((a,b)=>(a.data+String(a.h).padStart(2,'0')).localeCompare(b.data+String(b.h).padStart(2,'0')));
   $('#portal').innerHTML=`<div class="pt"><header class="s-head"><div class="s-in"><div class="s-brand" data-m="site"><img src="${IMG.escudo}" alt=""><div><b>Clube Itapuí</b><small>PORTAL DO SÓCIO</small></div></div><div class="row" style="gap:8px"><button class="s-btn line" style="width:auto" type="button" data-a="pw">Trocar senha</button><button class="s-btn dark" type="button" id="sairBtn">Sair</button></div></div></header>
   <main><h1>Olá, ${esc(s.nome.split(' ')[0])}</h1><p class="sub">Título ${s.id} · ${esc(pl.nome)} · ${ok?'situação em dia':s.status==='inativo'?'cadastro inativo':'há mensalidades em atraso'}</p>
   <div class="cards"><div><div class="card ${ok?'':'off'}"><div class="top"><span style="display:flex;align-items:center"><img src="${IMG.escudo}" alt="">Clube Itapuí</span><span style="font:500 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase">${pl.tipo} · ${pl.mod}</span></div><div><div class="nm">${esc(p.nome)}</div><div style="font-size:12px;opacity:.9;margin-top:2px">${esc(p.rel)}</div></div><div class="bot"><div class="mt"><span>Título<br><b>${num}</b></span><span>Sócio desde<br><b>${String(s.desde).slice(0,4)}</b></span><span>Situação<br><b>${ok?'Em dia':'Bloqueada'}</b></span></div><div id="qrDin" data-dep="${p.depId}" style="flex:none;text-align:center"><span class="qr" style="display:block;margin:0 auto"></span></div></div></div>
    ${pessoas.length>1?`<div class="row" style="margin-top:12px">${pessoas.map(x=>`<button class="s-btn ${x.idx===p.idx?'dark':'line'}" style="width:auto;padding:6px 12px;font-size:12.5px" type="button" data-pd="${x.idx}">${esc(x.nome.split(' ')[0])}</button>`).join('')}</div>`:''}</div>
   <div><div class="box"><h3 style="margin:0 0 8px">Mensalidades</h3>${ms.length?`<table><thead><tr><th>Competência</th><th>Vencimento</th><th>Valor</th><th>Situação</th></tr></thead><tbody>${ms.map(m=>{const[c,t]=pillM(m.status);return `<tr><td>${m.comp.slice(5)}/${m.comp.slice(0,4)}</td><td>${fmtData(m.venc)}</td><td>${brl(m.valor)}</td><td><span class="pill ${c}">${t}</span></td></tr>`}).join('')}</tbody></table>`:'<p style="margin:0;color:#71717a">Nenhuma mensalidade lançada ainda.</p>'}</div>
+  <div class="box"><h3 style="margin:0 0 8px">Meus aluguéis (salão e quiosque)</h3>${als.length?als.map(x=>`<div class="row spread" style="padding:7px 0;border-top:1px solid #f0f0f2"><span><b>${fmtData(x.data).slice(0,5)}</b> · ${ESP[x.esp]||'Salão'} · ${esc(x.evento)}</span><span class="pill ${STP[x.status][0]}">${STP[x.status][1]}</span></div>`).join(''):'<p style="margin:0;color:#71717a">Nenhum aluguel marcado.</p>'}</div>
   <div class="box"><h3 style="margin:0 0 8px">Minhas reservas de quadra</h3>${rs.length?rs.map(r=>`<div class="row spread" style="padding:7px 0;border-top:1px solid #f0f0f2"><span>${fmtData(r.data).slice(0,5)} · ${String(r.h).padStart(2,'0')}:00 · ${esc(nomeQ(r.q))}</span><button class="s-btn line" style="width:auto;padding:4px 10px;font-size:12.5px" type="button" data-a="cancelMy" data-v="${r.id}">Cancelar</button></div>`).join(''):'<p style="margin:0;color:#71717a">Nenhuma reserva futura.</p>'}<div class="row" style="margin-top:12px"><button class="s-btn red" type="button" data-a="reservar">Reservar quadra</button></div></div></div></div></main></div>`;qrDinamico();
 }
 
@@ -1157,6 +1161,7 @@ async function acaoView(a,v){
    case 'cancelQ':return dlgCancel(+v);
    case 'cm':S.calMes+=+v;if(S.calMes>11){S.calMes=0;S.calAno++}if(S.calMes<0){S.calMes=11;S.calAno--}S.calSel=null;return render();
    case 'cal':S.calSel=v;return render();
+   case 'esp':S.esp=v;S.calSel=null;return render();
    case 'alugar':return dlgAlugar(S.calSel);
    case 'salSt':{const [id,st]=v.split('|');if(await exec(async()=>{const {error}=await sb.from('salao_reservas').update({status:st}).eq('id',+id);if(error)throw error},'Situação atualizada'))render();return}
    case 'salCanc':{if(!confirm('Cancelar esta reserva do salão? A data volta a ficar livre.'))return;if(await exec(async()=>{const {error}=await sb.from('salao_reservas').update({status:'cancelada'}).eq('id',+v);if(error)throw error},'Reserva cancelada'))render();return}
