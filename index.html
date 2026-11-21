@@ -231,6 +231,8 @@ label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--mu
 .pt{background:#f6f6f7;min-height:100vh}.pt main{max-width:1000px;margin:0 auto;padding:26px 16px 50px}
 .pt h1{font:800 26px var(--f-head);margin:0 0 4px}.pt .sub{color:#52525b;margin:0 0 20px}
 .pt .cards{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:22px;align-items:start}
+.pano{display:grid;grid-template-columns:38px repeat(7,minmax(0,1fr));gap:3px}.pano .ph{font:700 11.5px var(--f-head);text-align:center;padding:4px 0;color:#141416}.pano .ph small{display:block;font:400 10.5px var(--f-body);color:#71717a}.pano .ph.hoje{color:#d71920}.pano .pr{font-size:11px;color:#71717a;align-self:center;font-variant-numeric:tabular-nums}.pano .pc{all:unset;box-sizing:border-box;border-radius:5px;min-height:26px;font-size:10.5px;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}.pano .pc.free{background:#e7f5ec;color:#177245;font-weight:600;cursor:pointer}.pano .pc.free:hover{outline:2px solid #177245}.pano .pc.busy{background:#f6e3dc;color:#a8482b;font-weight:600}.pano .pc.mine{background:#d71920;color:#fff;font-weight:700}.pano .pc.past{background:#f4f4f5;color:#a1a1aa}
+@media(max-width:520px){.pano{grid-template-columns:30px repeat(7,minmax(0,1fr));gap:2px}.pano .pc{font-size:9px;min-height:24px;border-radius:4px}.pano .ph{font-size:10.5px}.pano .ph small{font-size:9.5px}.pano .pr{font-size:10px}}
 .pt .box{background:#fff;border:1px solid #e4e4e7;border-radius:16px;padding:18px;margin-bottom:16px}
 .pt table{width:100%;border-collapse:collapse}.pt th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:#71717a;text-align:left;padding:8px 6px;border-bottom:1px solid #e4e4e7}.pt td{padding:9px 6px;border-bottom:1px solid #f0f0f2}
 .pt tr:last-child td{border-bottom:0}.pt select{padding:8px 10px;border:1px solid #d4d4d8;border-radius:8px;background:#fff;color:#141416;font:inherit}
@@ -1225,7 +1227,7 @@ function drawPortal(){
    ${pessoas.length>1?`<div class="row" style="margin-top:12px">${pessoas.map(x=>`<button class="s-btn ${x.idx===p.idx?'dark':'line'}" style="width:auto;padding:6px 12px;font-size:12.5px" type="button" data-pd="${x.idx}">${esc(x.nome.split(' ')[0])}</button>`).join('')}</div>`:''}</div>
   <div><div class="box"><h3 style="margin:0 0 8px">Mensalidades</h3>${ms.length?`<table><thead><tr><th>Competência</th><th>Vencimento</th><th>Valor</th><th>Situação</th></tr></thead><tbody>${ms.map(m=>{const[c,t]=pillM(m.status);return `<tr><td>${m.comp.slice(5)}/${m.comp.slice(0,4)}</td><td>${fmtData(m.venc)}</td><td>${brl(m.valor)}</td><td><span class="pill ${c}">${t}</span></td></tr>`}).join('')}</tbody></table>`:'<p style="margin:0;color:#71717a">Nenhuma mensalidade lançada ainda.</p>'}</div>
   <div class="box"><h3 style="margin:0 0 8px">Meus aluguéis (salão e quiosque)</h3>${als.length?als.map(x=>`<div class="row spread" style="padding:7px 0;border-top:1px solid #f0f0f2"><span><b>${fmtData(x.data).slice(0,5)}</b> · ${ESP[x.esp]||'Salão'} · ${esc(x.evento)}</span><span class="pill ${STP[x.status][0]}">${STP[x.status][1]}</span></div>`).join(''):'<p style="margin:0;color:#71717a">Nenhum aluguel marcado.</p>'}</div>
-  <div class="box"><h3 style="margin:0 0 8px">Minhas reservas de quadra</h3>${rs.length?rs.map(r=>`<div class="row spread" style="padding:7px 0;border-top:1px solid #f0f0f2"><span>${fmtData(r.data).slice(0,5)} · ${String(r.h).padStart(2,'0')}:00 · ${esc(nomeQ(r.q))}</span><button class="s-btn line" style="width:auto;padding:4px 10px;font-size:12.5px" type="button" data-a="cancelMy" data-v="${r.id}">Cancelar</button></div>`).join(''):'<p style="margin:0;color:#71717a">Nenhuma reserva futura.</p>'}<div class="row" style="margin-top:12px"><button class="s-btn red" type="button" data-a="reservar">Reservar quadra</button></div></div></div></div></main></div>`;qrDinamico();
+  <div class="box"><h3 style="margin:0 0 8px">Minhas reservas de quadra</h3>${rs.length?rs.map(r=>`<div class="row spread" style="padding:7px 0;border-top:1px solid #f0f0f2"><span>${fmtData(r.data).slice(0,5)} · ${String(r.h).padStart(2,'0')}:00 · ${esc(nomeQ(r.q))}</span><button class="s-btn line" style="width:auto;padding:4px 10px;font-size:12.5px" type="button" data-a="cancelMy" data-v="${r.id}">Cancelar</button></div>`).join(''):'<p style="margin:0;color:#71717a">Nenhuma reserva futura.</p>'}<div class="row" style="margin-top:12px"><button class="s-btn red" type="button" data-a="reservar">Reservar quadra</button></div>${panoHtml()}</div></div></div></main></div>`;qrDinamico();
 }
 
 let QRT=null;
@@ -1242,6 +1244,31 @@ function qrDinamico(){
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)qrDinamico()});
 let rsv={dia:iso(TODAY),q:null,ocup:new Set()};
+/* grade semanal panorâmica (minimizada por padrão): mostra ocupado/livre de todos, sem nomes */
+const pano={aberto:false,q:null,ocup:null};
+async function carregaPano(){const sem=agendaSemana(),seg=new Date(TODAY);seg.setDate(seg.getDate()-sem.dow);
+  const {data}=await sb.rpc('ocupacao_semana',{p_ini:iso(seg),p_fim:iso(sem.fim)});
+  pano.ocup=new Map((data||[]).map(x=>[x.data+'|'+x.quadra+'|'+x.hora,!!x.minha]))}
+function panoHtml(){
+  const AG=agendaveis(),sem=agendaSemana();
+  const bt=`<button class="s-btn line" style="width:auto;padding:8px 16px;font-size:13.5px" type="button" data-a="pano" aria-expanded="${pano.aberto}" aria-controls="panoBox">${pano.aberto?'Recolher grade semanal ▴':'Expandir grade semanal ▾'}</button>`;
+  if(!pano.aberto)return `<div class="row" style="margin-top:10px">${bt}</div>`;
+  if(!AG.length)return `<div class="row" style="margin-top:10px">${bt}</div><p class="note" style="margin:10px 0 0">Nenhuma quadra com agendamento no momento.</p>`;
+  if(!AG.some(x=>x.id===pano.q))pano.q=AG[0].id;
+  if(!sem.aberta)return `<div class="row" style="margin-top:10px">${bt}</div><p class="note" style="margin:10px 0 0"><b>A agenda desta semana abre hoje às 6h.</b></p>`;
+  if(!pano.ocup){carregaPano().then(()=>{if(pano.aberto&&S.mode==='socio')drawPortal()}).catch(()=>{pano.ocup=new Map();drawPortal()});return `<div class="row" style="margin-top:10px">${bt}</div><p class="note" style="margin:10px 0 0">Carregando a grade…</p>`}
+  const Q=AG.find(x=>x.id===pano.q),seg=new Date(TODAY);seg.setDate(seg.getDate()-sem.dow);
+  const dias=[];for(let i=0;i<7;i++){const d=new Date(seg);d.setDate(seg.getDate()+i);dias.push(d)}
+  const cel=(d,h)=>{const di=iso(d),k=di+'|'+Q.id+'|'+h;
+    if(di<iso(TODAY)||(di===iso(TODAY)&&h<=NOW_H))return '<span class="pc past">—</span>';
+    if(!diaAgendavel(Q,di))return '<span class="pc past" title="Dia de horários fixos das categorias">Fixo</span>';
+    if(pano.ocup.has(k))return pano.ocup.get(k)?'<span class="pc mine">Você</span>':'<span class="pc busy">Ocupado</span>';
+    return `<button class="pc free" type="button" data-a="panoBook" data-v="${Q.id}|${di}|${h}">Livre</button>`};
+  const g=`<div class="pano"><div></div>${dias.map(d=>`<div class="ph${iso(d)===iso(TODAY)?' hoje':''}">${DSEM[d.getDay()]}<small>${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</small></div>`).join('')}${HORAS.map(h=>`<div class="pr">${String(h).padStart(2,'0')}h</div>${dias.map(d=>cel(d,h)).join('')}`).join('')}</div>`;
+  return `<div class="row" style="margin-top:10px">${bt}</div><div id="panoBox" style="margin-top:12px">
+   <div class="row" style="gap:6px;margin-bottom:10px">${AG.map(x=>`<button class="s-btn ${x.id===pano.q?'dark':'line'}" style="width:auto;padding:6px 12px;font-size:12.5px" type="button" data-a="panoQ" data-v="${x.id}">${esc(x.nome)}</button>`).join('')}</div>
+   <div style="overflow-x:auto"><div style="min-width:300px">${g}</div></div>
+   <p class="note" style="margin:10px 0 0;font-size:12.5px">Visão da semana de todos os sócios: aparece só se o horário está ocupado, sem o nome de quem reservou. Toque num horário <b>Livre</b> para reservar.</p></div>`}
 async function carregaOcup(){const {data}=await sb.rpc('ocupacao_quadras',{p_data:rsv.dia});rsv.ocup=new Set((data||[]).map(x=>x.quadra+'|'+x.hora))}
 function drawReserva(){
   const AG=agendaveis();
@@ -1265,7 +1292,7 @@ function drawReserva(){
       if(b.dataset.a==='rHora'){const h=+b.dataset.v;if(!confirm('Reservar '+nomeQ(rsv.q)+' em '+fmtData(rsv.dia).slice(0,5)+' às '+String(h).padStart(2,'0')+':00?'))return;
         const {error}=await sb.rpc('reservar_quadra',{p_quadra:rsv.q,p_data:rsv.dia,p_hora:h});
         if(error){toast(msgErro(error));await carregaOcup();drawReserva();return}
-        await loadAll();closeM();toast('Reserva confirmada');drawPortal()}});
+        await loadAll();pano.ocup=null;closeM();toast('Reserva confirmada');drawPortal()}});
     d.addEventListener('change',async e=>{if(e.target.id==='rDia'){rsv.dia=e.target.value;await carregaOcup();drawReserva()}if(e.target.id==='rQ'){rsv.q=e.target.value;drawReserva()}})});
 }
 
@@ -1319,8 +1346,11 @@ document.addEventListener('click',e=>{
   const p=e.target.closest('#portal [data-a]');
   if(p){const a=p.dataset.a;
     if(a==='pw')return dlgSenhaNova(false);
+    if(a==='pano'){pano.aberto=!pano.aberto;if(pano.aberto)pano.ocup=null;return drawPortal()}
+    if(a==='panoQ'){pano.q=p.dataset.v;return drawPortal()}
+    if(a==='panoBook'){const [q,dia,h]=p.dataset.v.split('|');rsv={dia,q,ocup:new Set()};return carregaOcup().then(drawReserva)}
     if(a==='reservar'){rsv={dia:iso(TODAY),q:QUADRAS[0]&&QUADRAS[0].id,ocup:new Set()};return carregaOcup().then(drawReserva)}
-    if(a==='cancelMy'){if(!confirm('Cancelar esta reserva?'))return;return exec(async()=>{const {error}=await sb.rpc('cancelar_reserva_quadra',{p_id:+p.dataset.v});if(error)throw error},'Reserva cancelada').then(()=>drawPortal())}}
+    if(a==='cancelMy'){if(!confirm('Cancelar esta reserva?'))return;return exec(async()=>{const {error}=await sb.rpc('cancelar_reserva_quadra',{p_id:+p.dataset.v});if(error)throw error},'Reserva cancelada').then(()=>{pano.ocup=null;drawPortal()})}}
   const ids=e.target.closest('#sairApp,#trocarSenhaApp');
   if(ids)return ids.id==='sairApp'?sair():dlgSenhaNova(false);
 });
