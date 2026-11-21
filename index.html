@@ -231,8 +231,8 @@ label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--mu
 .pt{background:#f6f6f7;min-height:100vh}.pt main{max-width:1000px;margin:0 auto;padding:26px 16px 50px}
 .pt h1{font:800 26px var(--f-head);margin:0 0 4px}.pt .sub{color:#52525b;margin:0 0 20px}
 .pt .cards{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:22px;align-items:start}
-.pano{display:grid;grid-template-columns:38px repeat(7,minmax(0,1fr));gap:3px}.pano .ph{font:700 11.5px var(--f-head);text-align:center;padding:4px 0;color:#141416}.pano .ph small{display:block;font:400 10.5px var(--f-body);color:#71717a}.pano .ph.hoje{color:#d71920}.pano .pr{font-size:11px;color:#71717a;align-self:center;font-variant-numeric:tabular-nums}.pano .pc{all:unset;box-sizing:border-box;border-radius:5px;min-height:26px;font-size:10.5px;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}.pano .pc.free{background:#e7f5ec;color:#177245;font-weight:600;cursor:pointer}.pano .pc.free:hover{outline:2px solid #177245}.pano .pc.busy{background:#f6e3dc;color:#a8482b;font-weight:600}.pano .pc.mine{background:#d71920;color:#fff;font-weight:700}.pano .pc.past{background:#f4f4f5;color:#a1a1aa}
-@media(max-width:520px){.pano{grid-template-columns:30px repeat(7,minmax(0,1fr));gap:2px}.pano .pc{font-size:9px;min-height:24px;border-radius:4px}.pano .ph{font-size:10.5px}.pano .ph small{font-size:9.5px}.pano .pr{font-size:10px}}
+.pano{display:grid;grid-template-columns:38px repeat(7,minmax(0,1fr));gap:3px}.pano .ph{font:700 11.5px var(--f-head);text-align:center;padding:4px 0;color:#141416}.pano .ph small{display:block;font:400 10.5px var(--f-body);color:#71717a}.pano .ph.hoje{color:#d71920}.pano .pr{font-size:11px;color:#71717a;align-self:center;font-variant-numeric:tabular-nums}.pano .pc{all:unset;box-sizing:border-box;border-radius:5px;min-height:26px;font-size:10.5px;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}.pano .pc.free{background:#e7f5ec;color:#177245;font-weight:600;cursor:pointer}.pano .pc.free:hover{outline:2px solid #177245}.pano .pc.busy{background:#f6e3dc;color:#a8482b;font-weight:600}.pano .pc.mine{background:#d71920;color:#fff;font-weight:700}.pano .pc.busy,.pano .pc.mine{white-space:nowrap;text-overflow:ellipsis;padding:0 2px}.pano .pc.past{background:#f4f4f5;color:#a1a1aa}
+@media(max-width:520px){.pano .pc .n2{display:none}.pano{grid-template-columns:30px repeat(7,minmax(0,1fr));gap:2px}.pano .pc{font-size:9px;min-height:24px;border-radius:4px}.pano .ph{font-size:10.5px}.pano .ph small{font-size:9.5px}.pano .pr{font-size:10px}}
 .pt .box{background:#fff;border:1px solid #e4e4e7;border-radius:16px;padding:18px;margin-bottom:16px}
 .pt table{width:100%;border-collapse:collapse}.pt th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:#71717a;text-align:left;padding:8px 6px;border-bottom:1px solid #e4e4e7}.pt td{padding:9px 6px;border-bottom:1px solid #f0f0f2}
 .pt tr:last-child td{border-bottom:0}.pt select{padding:8px 10px;border:1px solid #d4d4d8;border-radius:8px;background:#fff;color:#141416;font:inherit}
@@ -1088,7 +1088,7 @@ function setMode(m){
   if(m==='socio'&&!S.meuTitulo)m='loginsocio';
   if(m==='login'&&S.perfil)m='app';
   if(m==='loginsocio'&&S.meuTitulo)m='socio';
-  S.mode=m;clearInterval(S.slideT);
+  S.mode=m;clearInterval(S.slideT);if(m==='socio'){try{pano.aberto=false}catch(e){}}
   $('#appRoot').hidden=m!=='app';$('#site').hidden=m!=='site';$('#login').hidden=!(m==='login'||m==='loginsocio');$('#portal').hidden=m!=='socio';
   closeM();
   if(m==='app'){if(!pTabs().includes(S.tab))S.tab=pTabs()[0];const pt=$('#perfilTxt');if(pt)pt.innerHTML=(perfisDe().length>1?'Perfis: ':'Perfil: ')+'<b style="color:#fff">'+esc(nomesPerfis(perfisDe()))+'</b>'+(S.user&&S.user.email?'<br>'+esc(S.user.email):'');drawNav();render()}
@@ -1248,7 +1248,7 @@ let rsv={dia:iso(TODAY),q:null,ocup:new Set()};
 const pano={aberto:false,q:null,ocup:null};
 async function carregaPano(){const sem=agendaSemana(),seg=new Date(TODAY);seg.setDate(seg.getDate()-sem.dow);
   const {data}=await sb.rpc('ocupacao_semana',{p_ini:iso(seg),p_fim:iso(sem.fim)});
-  pano.ocup=new Map((data||[]).map(x=>[x.data+'|'+x.quadra+'|'+x.hora,!!x.minha]))}
+  pano.ocup=new Map((data||[]).map(x=>[x.data+'|'+x.quadra+'|'+x.hora,{minha:!!x.minha,nome:x.nome||''}]))}
 function panoHtml(){
   const AG=agendaveis(),sem=agendaSemana();
   const bt=`<button class="s-btn line" style="width:auto;padding:8px 16px;font-size:13.5px" type="button" data-a="pano" aria-expanded="${pano.aberto}" aria-controls="panoBox">${pano.aberto?'Recolher grade semanal ▴':'Expandir grade semanal ▾'}</button>`;
@@ -1262,13 +1262,13 @@ function panoHtml(){
   const cel=(d,h)=>{const di=iso(d),k=di+'|'+Q.id+'|'+h;
     if(di<iso(TODAY)||(di===iso(TODAY)&&h<=NOW_H))return '<span class="pc past">—</span>';
     if(!diaAgendavel(Q,di))return '<span class="pc past" title="Dia de horários fixos das categorias">Fixo</span>';
-    if(pano.ocup.has(k))return pano.ocup.get(k)?'<span class="pc mine">Você</span>':'<span class="pc busy">Ocupado</span>';
+    if(pano.ocup.has(k)){const o=pano.ocup.get(k),pn=(o.nome||'').split(' '),nm=`<span>${esc(pn[0]||'')}</span>${pn[1]?`<span class="n2">&nbsp;${esc(pn[1])}</span>`:''}`;return o.minha?`<span class="pc mine" title="Sua reserva (${esc(o.nome)})">${nm}</span>`:`<span class="pc busy" title="${esc(o.nome)}">${nm}</span>`}
     return `<button class="pc free" type="button" data-a="panoBook" data-v="${Q.id}|${di}|${h}">Livre</button>`};
   const g=`<div class="pano"><div></div>${dias.map(d=>`<div class="ph${iso(d)===iso(TODAY)?' hoje':''}">${DSEM[d.getDay()]}<small>${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</small></div>`).join('')}${HORAS.map(h=>`<div class="pr">${String(h).padStart(2,'0')}h</div>${dias.map(d=>cel(d,h)).join('')}`).join('')}</div>`;
   return `<div class="row" style="margin-top:10px">${bt}</div><div id="panoBox" style="margin-top:12px">
    <div class="row" style="gap:6px;margin-bottom:10px">${AG.map(x=>`<button class="s-btn ${x.id===pano.q?'dark':'line'}" style="width:auto;padding:6px 12px;font-size:12.5px" type="button" data-a="panoQ" data-v="${x.id}">${esc(x.nome)}</button>`).join('')}</div>
    <div style="overflow-x:auto"><div style="min-width:300px">${g}</div></div>
-   <p class="note" style="margin:10px 0 0;font-size:12.5px">Visão da semana de todos os sócios: aparece só se o horário está ocupado, sem o nome de quem reservou. Toque num horário <b>Livre</b> para reservar.</p></div>`}
+   <p class="note" style="margin:10px 0 0;font-size:12.5px">Visão da semana de todos os sócios: cada horário ocupado mostra quem reservou. A <b>sua</b> reserva aparece em vermelho. Toque num horário <b>Livre</b> para reservar.</p></div>`}
 async function carregaOcup(){const {data}=await sb.rpc('ocupacao_quadras',{p_data:rsv.dia});rsv.ocup=new Set((data||[]).map(x=>x.quadra+'|'+x.hora))}
 function drawReserva(){
   const AG=agendaveis();
