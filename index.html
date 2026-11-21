@@ -885,14 +885,12 @@ function dlgBaixa(id){
   modal(`<h2>Dar baixa</h2><p class="note" style="margin:0">${esc(nomeS(m.sid))} · ${m.comp.slice(5)}/${m.comp.slice(0,4)} · ${brl(m.valor)}</p>
   <form id="fb2" class="form"><label>Forma de pagamento<select id="bf"><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="cartao">Cartão</option><option value="boleto">Boleto</option><option value="outro">Outro</option></select></label>
   <label>Data do pagamento<input id="bdt" type="date" required value="${iso(TODAY)}" max="${iso(TODAY)}"></label>
-  ${emailOk((byId(m.sid)||{}).email)?`<label class="full row" style="gap:8px;align-items:center;justify-content:flex-start"><input id="brc" type="checkbox" checked style="width:auto"> Enviar o recibo por e-mail para ${esc(byId(m.sid).email)}</label>`:'<p class="full note" style="margin:0">Sócio sem e-mail cadastrado: o recibo não poderá ser enviado.</p>'}
+  ${emailOk((byId(m.sid)||{}).email)?`<p class="full note" style="margin:0">O recibo será enviado automaticamente para ${esc(byId(m.sid).email)}.</p>`:'<p class="full note" style="margin:0">Sócio sem e-mail cadastrado: o recibo não poderá ser enviado.</p>'}
   <div class="full row" style="justify-content:flex-end"><button class="btn" data-x type="button">Cancelar</button><button class="btn primary" type="submit">Confirmar baixa</button></div></form>`,
   d=>{d.addEventListener('click',e=>{if(e.target.dataset.x!==undefined)closeM()});
    $('#fb2',d).addEventListener('submit',async e=>{e.preventDefault();
-     const querRec=!!($('#brc')&&$('#brc').checked);
      const ok=await exec(async()=>{const {error}=await sb.rpc('dar_baixa',{p_id:id,p_forma:$('#bf').value,p_data:$('#bdt').value});if(error)throw error},'Baixa registrada');
-     if(ok){closeM();render();
-       if(querRec){try{await fnRecibo({mensalidade_id:id});await loadAll();render();toast('Baixa registrada e recibo enviado por e-mail')}catch(er){toast('Baixa registrada, mas o recibo não foi enviado: '+msgErro(er))}}}})});
+     if(ok){closeM();render();setTimeout(async()=>{try{await loadAll();render()}catch(e){}},6000)}})});
 }
 function dlgGerar(){
   const prox=new Date(TODAY.getFullYear(),TODAY.getMonth()+1,1);
