@@ -368,6 +368,7 @@ const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const brl=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+let RECIBOS=new Map();/* último envio de recibo por e-mail de cada mensalidade */
 let ENVIOS=new Map();/* última tentativa de cobrança por e-mail de cada mensalidade (gestor/tesouraria) */
 /* ---------- dados e acesso ao banco (Supabase) ---------- */
 const TODAY=new Date();TODAY.setHours(12,0,0,0);
@@ -435,8 +436,8 @@ async function loadAll(){
     const mp=new Map(socios.map(x=>[x.id,x]));
     d.forEach(x=>{const o=mp.get(x.titulo);if(o)o.dep.push({id:x.id,nome:x.nome,rel:x.parentesco,nasc:x.nascimento})});
     mens=m.map(x=>({id:x.id,sid:x.titulo,comp:String(x.competencia).slice(0,7),valor:Number(x.valor),venc:x.vencimento,pago:x.pago_em,forma:x.forma,status:(x.status==='aberta'&&x.vencimento<hj)?'atrasada':x.status}));
-    ENVIOS=new Map();
-    if(['gestor','tesouraria'].includes(S.perfil)){const ev=await fetchAll((a,b)=>sb.from('cobranca_envios').select('mensalidade_id,status,em').order('id').range(a,b));ev.forEach(x=>ENVIOS.set(x.mensalidade_id,{status:x.status,em:x.em}))}
+    ENVIOS=new Map();RECIBOS=new Map();
+    if(['gestor','tesouraria'].includes(S.perfil)){const ev=await fetchAll((a,b)=>sb.from('cobranca_envios').select('mensalidade_id,status,em,tipo').order('id').range(a,b));ev.forEach(x=>(x.tipo==='recibo'?RECIBOS:ENVIOS).set(x.mensalidade_id,{status:x.status,em:x.em}))}
     reservas=r.map(x=>({id:x.id,q:x.quadra,data:x.data,h:x.hora,sid:x.titulo}));
     salao=sa.map(x=>({id:x.id,data:x.data,sid:x.titulo,esp:x.espaco||'salao',evento:x.evento,valor:Number(x.valor),status:x.status}));
     equipeL=[];interessados=[];
@@ -446,6 +447,11 @@ async function loadAll(){
 }
 async function fnAcesso(body){
   const {data,error}=await sb.functions.invoke('acesso-clube',{body});
+  if(error){let m=error.message;try{const j=await error.context.json();m=j.erro||m}catch(e){}throw new Error(m)}
+  if(data&&data.erro)throw new Error(data.erro);
+  return data}
+async function fnRecibo(body){
+  const {data,error}=await sb.functions.invoke('enviar-recibo',{body});
   if(error){let m=error.message;try{const j=await error.context.json();m=j.erro||m}catch(e){}throw new Error(m)}
   if(data&&data.erro)throw new Error(data.erro);
   return data}
@@ -775,6 +781,11 @@ async function abrirScanner(){
 /* ---------- MENSALIDADES ---------- */
 const emailOk=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e||'');
 function infoEnvio(m,s){
+  if(m.status==='paga'){
+    const rc=RECIBOS.get(m.id);
+    if(rc&&rc.status==='enviado')return `<br><span class="note">✉ recibo enviado em ${new Date(rc.em).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})}</span>`;
+    if(rc&&rc.status==='erro')return '<br><span class="note" style="color:#b3141a">falha ao enviar o recibo</span>';
+    return ''}
   if(!(m.status==='aberta'||m.status==='atrasada'))return '';
   const ev=ENVIOS.get(m.id);
   if(ev&&ev.status==='enviado')return `<br><span class="note">✉ cobrança enviada em ${new Date(ev.em).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})}</span>`;
@@ -805,6 +816,14 @@ function dlgEnviarCob(){
      try{const t=await rodarEnvio({competencia:S.compM},b);await loadAll();closeM();render();toast(msgEnvio(t))}
      catch(er){b.disabled=false;b.textContent='Enviar '+vai;toast(msgErro(er))}})});
 }
+async function enviarRecibo(id){
+  const m=mens.find(x=>x.id===id),s=m&&byId(m.sid);
+  if(!m||!s)return;
+  if(!emailOk(s.email))return toast('Este sócio não tem e-mail cadastrado');
+  const rc=RECIBOS.get(id);
+  if(!confirm((rc&&rc.status==='enviado'?'O recibo já foi enviado. Enviar de novo para ':'Enviar o recibo por e-mail para ')+s.nome+' ('+s.email+')?'))return;
+  try{await fnRecibo({mensalidade_id:id});await loadAll();render();toast('Recibo enviado por e-mail')}catch(er){toast(msgErro(er))}
+}
 async function enviarUm(id){
   const m=mens.find(x=>x.id===id),s=m&&byId(m.sid);
   if(!m||!s)return;
@@ -827,7 +846,7 @@ function vMensLista(){
    ${[['todas','Todas'],['aberta','Em aberto'],['atrasada','Atrasadas'],['paga','Pagas']].map(([k,t])=>`<button type="button" data-a="fm" data-v="${k}" aria-pressed="${f===k}">${t} ${cnt(k)}</button>`).join('')}</div>
   <div class="tablewrap"><table><thead><tr><th>Sócio</th><th>Plano</th><th>Vencimento</th><th>Valor</th><th>Situação</th><th></th></tr></thead><tbody>
   ${l.length?l.map(m=>{const s=byId(m.sid)||{nome:'—',id:m.sid,plano:''},[c,t]=pillM(m.status);return `<tr><td><b>${esc(s.nome)}</b><br><span class="note">título ${s.id}</span></td><td>${esc((PLANOS[s.plano]||{nome:''}).nome)}</td><td>${fmtData(m.venc)}</td><td>${brl(m.valor)}</td><td><span class="pill ${c}">${t}</span>${m.pago?`<br><span class="note">em ${fmtData(m.pago)}${m.forma?' · '+m.forma:''}</span>`:''}${infoEnvio(m,s)}</td>
-   <td style="text-align:right;white-space:nowrap">${edita&&(m.status==='aberta'||m.status==='atrasada')?`${emailOk(s.email)?`<button class="btn sm" data-a="envUm" data-v="${m.id}" type="button">Enviar e-mail</button> `:''}<button class="btn sm primary" data-a="pay" data-v="${m.id}" type="button">Dar baixa</button>`:''}</td></tr>`}).join(''):`<tr><td colspan="6" class="note">${dosMes.length?'Nenhuma mensalidade neste filtro.':'Nenhuma mensalidade gerada nesta competência.'}</td></tr>`}
+   <td style="text-align:right;white-space:nowrap">${edita&&(m.status==='aberta'||m.status==='atrasada')?`${emailOk(s.email)?`<button class="btn sm" data-a="envUm" data-v="${m.id}" type="button">Enviar e-mail</button> `:''}<button class="btn sm primary" data-a="pay" data-v="${m.id}" type="button">Dar baixa</button>`:''}${edita&&m.status==='paga'&&emailOk(s.email)?`<button class="btn sm" data-a="envRec" data-v="${m.id}" type="button">Enviar recibo</button>`:''}</td></tr>`}).join(''):`<tr><td colspan="6" class="note">${dosMes.length?'Nenhuma mensalidade neste filtro.':'Nenhuma mensalidade gerada nesta competência.'}</td></tr>`}
   </tbody></table></div></div>`;
 }
 
@@ -866,11 +885,14 @@ function dlgBaixa(id){
   modal(`<h2>Dar baixa</h2><p class="note" style="margin:0">${esc(nomeS(m.sid))} · ${m.comp.slice(5)}/${m.comp.slice(0,4)} · ${brl(m.valor)}</p>
   <form id="fb2" class="form"><label>Forma de pagamento<select id="bf"><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="cartao">Cartão</option><option value="boleto">Boleto</option><option value="outro">Outro</option></select></label>
   <label>Data do pagamento<input id="bdt" type="date" required value="${iso(TODAY)}" max="${iso(TODAY)}"></label>
+  ${emailOk((byId(m.sid)||{}).email)?`<label class="full row" style="gap:8px;align-items:center;justify-content:flex-start"><input id="brc" type="checkbox" checked style="width:auto"> Enviar o recibo por e-mail para ${esc(byId(m.sid).email)}</label>`:'<p class="full note" style="margin:0">Sócio sem e-mail cadastrado: o recibo não poderá ser enviado.</p>'}
   <div class="full row" style="justify-content:flex-end"><button class="btn" data-x type="button">Cancelar</button><button class="btn primary" type="submit">Confirmar baixa</button></div></form>`,
   d=>{d.addEventListener('click',e=>{if(e.target.dataset.x!==undefined)closeM()});
    $('#fb2',d).addEventListener('submit',async e=>{e.preventDefault();
+     const querRec=!!($('#brc')&&$('#brc').checked);
      const ok=await exec(async()=>{const {error}=await sb.rpc('dar_baixa',{p_id:id,p_forma:$('#bf').value,p_data:$('#bdt').value});if(error)throw error},'Baixa registrada');
-     if(ok){closeM();render()}})});
+     if(ok){closeM();render();
+       if(querRec){try{await fnRecibo({mensalidade_id:id});await loadAll();render();toast('Baixa registrada e recibo enviado por e-mail')}catch(er){toast('Baixa registrada, mas o recibo não foi enviado: '+msgErro(er))}}}})});
 }
 function dlgGerar(){
   const prox=new Date(TODAY.getFullYear(),TODAY.getMonth()+1,1);
@@ -1248,6 +1270,7 @@ async function acaoView(a,v){
    case 'gerarMens':return dlgGerar();
    case 'envCob':return dlgEnviarCob();
    case 'envUm':return enviarUm(+v);
+   case 'envRec':return enviarRecibo(+v);
    case 'tq':S.tipoQ=v;return render();
    case 'feriados':return dlgFeriados();
    case 'dia':S.dia=v;return render();
