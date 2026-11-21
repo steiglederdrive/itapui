@@ -421,7 +421,7 @@ async function loadAll(){
     FERIADOS=fe.data||[];
     if(pl.data&&pl.data.length){Object.keys(PLANOS).forEach(k=>delete PLANOS[k]);pl.data.forEach(p=>{PLANOS[p.codigo]={nome:p.nome,tipo:p.tipo,mod:p.modalidade,valor:Number(p.valor),dep:p.max_dependentes}})}
     if(qd.data&&qd.data.length){QUADRAS.length=0;qd.data.forEach(q=>QUADRAS.push({id:q.id,nome:q.nome,tipo:q.tipo,piso:q.piso||'',agenda:q.agenda||'sempre'}))}
-    const full=['gestor','secretaria','tesouraria'].includes(S.perfil),soc=!!S.meuTitulo;
+    const full=pode('gestor','secretaria','tesouraria'),soc=!!S.meuTitulo;
     if(!full&&!soc){socios=[];mens=[];reservas=[];salao=[];equipeL=[];interessados=[];return}
     const hj=iso(TODAY);
     const [s,d,m,r,sa,sit]=await Promise.all([
@@ -437,12 +437,12 @@ async function loadAll(){
     d.forEach(x=>{const o=mp.get(x.titulo);if(o)o.dep.push({id:x.id,nome:x.nome,rel:x.parentesco,nasc:x.nascimento})});
     mens=m.map(x=>({id:x.id,sid:x.titulo,comp:String(x.competencia).slice(0,7),valor:Number(x.valor),venc:x.vencimento,pago:x.pago_em,forma:x.forma,status:(x.status==='aberta'&&x.vencimento<hj)?'atrasada':x.status}));
     ENVIOS=new Map();RECIBOS=new Map();
-    if(['gestor','tesouraria'].includes(S.perfil)){const ev=await fetchAll((a,b)=>sb.from('cobranca_envios').select('mensalidade_id,status,em,tipo').order('id').range(a,b));ev.forEach(x=>(x.tipo==='recibo'?RECIBOS:ENVIOS).set(x.mensalidade_id,{status:x.status,em:x.em}))}
+    if(pode('gestor','tesouraria')){const ev=await fetchAll((a,b)=>sb.from('cobranca_envios').select('mensalidade_id,status,em,tipo').order('id').range(a,b));ev.forEach(x=>(x.tipo==='recibo'?RECIBOS:ENVIOS).set(x.mensalidade_id,{status:x.status,em:x.em}))}
     reservas=r.map(x=>({id:x.id,q:x.quadra,data:x.data,h:x.hora,sid:x.titulo}));
     salao=sa.map(x=>({id:x.id,data:x.data,sid:x.titulo,esp:x.espaco||'salao',evento:x.evento,valor:Number(x.valor),status:x.status}));
     equipeL=[];interessados=[];
-    if(S.perfil==='gestor'){const e=await sb.from('equipe').select('*').order('criado_em');equipeL=e.data||[]}
-    if(['gestor','secretaria'].includes(S.perfil)){const i=await sb.from('interessados').select('*').order('criado_em',{ascending:false});interessados=i.data||[]}
+    if(pode('gestor')){const e=await sb.from('equipe').select('*').order('criado_em');equipeL=e.data||[]}
+    if(pode('gestor','secretaria')){const i=await sb.from('interessados').select('*').order('criado_em',{ascending:false});interessados=i.data||[]}
   }finally{document.body.style.cursor=''}
 }
 async function fnAcesso(body){
@@ -463,10 +463,10 @@ async function fnCobranca(body){
 async function carregaSessao(){
   if(!sb)return false;
   const {data}=await sb.auth.getSession();const ses=data&&data.session;
-  if(!ses){S.user=null;S.perfil=null;S.meuTitulo=null;S.forcePw=false;return false}
+  if(!ses){S.user=null;S.perfil=null;S.perfis=[];S.meuTitulo=null;S.forcePw=false;return false}
   S.user=ses.user;
-  const [p,t]=await Promise.all([sb.rpc('meu_perfil'),sb.rpc('meu_titulo')]);
-  S.perfil=p.data||null;S.meuTitulo=t.data||null;
+  const [p,ps,t]=await Promise.all([sb.rpc('meu_perfil'),sb.rpc('meus_perfis'),sb.rpc('meu_titulo')]);
+  S.perfil=p.data||null;S.perfis=(ps.data&&ps.data.length)?ps.data:(S.perfil?[S.perfil]:[]);S.meuTitulo=t.data||null;
   if(!S.perfil&&!S.meuTitulo){await sb.auth.signOut();S.user=null;S.forcePw=false;return false}
   S.forcePw=!!(ses.user.user_metadata&&ses.user.user_metadata.trocar_senha);
   return true}
@@ -479,13 +479,13 @@ async function entrar(tipo,login,senha){
   if(error)return /Failed to fetch|Network/.test(error.message)?'Sem conexão com o servidor.':'Login ou senha incorretos.';
   const ok=await carregaSessao();
   if(!ok||(tipo==='gestao'&&!S.perfil)||(tipo==='socio'&&!S.meuTitulo)){
-    await sb.auth.signOut();S.perfil=null;S.meuTitulo=null;S.user=null;
+    await sb.auth.signOut();S.perfil=null;S.perfis=[];S.meuTitulo=null;S.user=null;
     return tipo==='socio'?'Este CPF ainda não tem acesso ao portal. Procure a secretaria do clube.':'Este usuário não tem acesso à gestão.'}
   try{await loadAll()}catch(e){return 'Não foi possível carregar os dados: '+msgErro(e)}
   return ''}
 async function sair(){
   try{await sb.auth.signOut()}catch(e){}
-  S.perfil=null;S.meuTitulo=null;S.user=null;S.forcePw=false;S.consulta=undefined;
+  S.perfil=null;S.perfis=[];S.meuTitulo=null;S.user=null;S.forcePw=false;S.consulta=undefined;
   socios=[];mens=[];reservas=[];salao=[];equipeL=[];interessados=[];
   setMode('site')}
 async function exec(fn,ok){try{const r=await fn();await loadAll();if(ok)toast(ok);return r===undefined?true:r}catch(e){toast(msgErro(e));return false}}
@@ -509,11 +509,13 @@ const PERFIS={
  tesouraria:{nome:'Tesouraria',tabs:['painel','mensalidades'],desc:'Mensalidades, baixas e relatórios'},
  secretaria:{nome:'Secretaria',tabs:['painel','socios','carteirinha','quadras','salao','interessados'],desc:'Sócios, dependentes, quadras, salão e interessados'},
  portaria:{nome:'Portaria',tabs:['carteirinha'],desc:'Só consulta a carteirinha e a situação do sócio'}};
-const pTabs=()=>S.perfil&&PERFIS[S.perfil]?PERFIS[S.perfil].tabs:[];
+const perfisDe=()=>(S.perfis&&S.perfis.length?S.perfis:(S.perfil?[S.perfil]:[])).filter(k=>PERFIS[k]);
+const pTabs=()=>{const l=perfisDe();return TABS.map(t=>t[0]).filter(k=>l.some(p=>PERFIS[p].tabs.includes(k)))};
+const nomesPerfis=l=>(l&&l.length?l:[]).map(k=>(PERFIS[k]||{nome:k}).nome).join(' + ');
 function drawNav(){
   $('#nav').innerHTML=TABS.filter(([k])=>pTabs().includes(k)).map(([k,l])=>`<button type="button" data-tab="${k}" ${S.tab===k?'aria-current="page"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>${l}</button>`).join('');
 }
-function go(t){if(!pTabs().includes(t)){toast('O perfil '+PERFIS[S.perfil].nome+' não tem acesso a esta área');return}S.tab=t;if(S.mode!=='app')return setMode('app');try{history.replaceState(null,'','#'+t)}catch(e){}drawNav();render();window.scrollTo(0,0)}
+function go(t){if(!pTabs().includes(t)){toast('Seu perfil ('+nomesPerfis(perfisDe())+') não tem acesso a esta área');return}S.tab=t;if(S.mode!=='app')return setMode('app');try{history.replaceState(null,'','#'+t)}catch(e){}drawNav();render();window.scrollTo(0,0)}
 
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2400)}
 function modal(html,onMount){
@@ -530,7 +532,7 @@ const sociosAtivos=()=>socios.filter(s=>s.status!=='inativo');
 const nPessoas=()=>socios.reduce((a,s)=>a+1+s.dep.length,0);
 const mesAtual=()=>mens.filter(m=>m.comp===mesISO(TODAY));
 const pillM=st=>({paga:['ok','Paga'],aberta:['warn','Em aberto'],atrasada:['bad','Atrasada'],isenta:['mute','Isenta'],cancelada:['mute','Cancelada']})[st]||['mute',String(st)];
-const pode=(...p)=>p.includes(S.perfil);
+const pode=(...p)=>perfisDe().some(x=>p.includes(x));
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 const nomeQ=id=>{const q=QUADRAS.find(x=>x.id===id);return q?q.nome:id};
 const nomeS=id=>{const s=byId(id);return s?s.nome:'—'};
@@ -680,7 +682,7 @@ function qrSvg(texto){
 const pessoasDe=s=>[{nome:s.nome,rel:'Titular',nasc:s.nasc,idx:-1,depId:0},...s.dep.map((d,i)=>({...d,idx:i,depId:d.id}))];
 const codCart=(s,p)=>s.id+'-'+String(p.depId).padStart(2,'0');
 function vCart(){
-  if(S.perfil==='portaria')return vPortaria();
+  if(pode('portaria')&&!pode('gestor','secretaria'))return vPortaria();
   if(!socios.length)return `<div class="head"><div><h1>Carteirinha de acesso</h1></div></div>`+vazioMsg('Nenhum sócio cadastrado.','Cadastre um sócio para emitir a carteirinha.');
   let s=byId(S.cart);if(!s){s=socios[0];S.cart=s.id}
   const pessoas=pessoasDe(s);
@@ -916,7 +918,7 @@ function vQuadras(){
   const hoje=S.dia===iso(TODAY),fer=feriadoDe(S.dia);
   const res=(q,h)=>reservas.find(r=>r.q===q&&r.data===S.dia&&r.h===h);
   const nRes=reservas.filter(r=>r.data===S.dia&&agendaveis().some(q=>q.id===r.q)).length;
-  const pode=['gestor','secretaria'].includes(S.perfil);
+  const pode=perfisDe().some(x=>['gestor','secretaria'].includes(x));
   const fixas=qs.filter(q=>!diaAgendavel(q,S.dia));
   let g=`<div class="slots" style="grid-template-columns:48px repeat(${qs.length},minmax(0,1fr))"><div></div>${qs.map(q=>`<div class="hd">${esc(q.nome)}<small>${esc(q.piso)}</small></div>`).join('')}`;
   HORAS.forEach(h=>{
@@ -1030,19 +1032,30 @@ function vInter(){
 function vEquipe(){
   return `<div class="head"><div><h1>Equipe e perfis</h1><p>Quem acessa o painel e o que cada perfil pode ver</p></div><button class="btn primary" data-a="novoUsuario" type="button">Convidar usuário</button></div>
   <div class="grid g2"><div class="panel"><h3 style="margin-bottom:10px">Usuários</h3><div class="tablewrap"><table><thead><tr><th>Nome</th><th>Perfil</th><th></th></tr></thead><tbody>
-  ${equipeL.map(u=>{const eu=S.user&&u.user_id===S.user.id;return `<tr style="${u.ativo?'':'opacity:.6'}"><td><b>${esc(u.nome)}</b>${eu?' <span class="note">(você)</span>':''}<br><span class="note">${esc(u.email)}</span></td><td>${(PERFIS[u.perfil]||{nome:u.perfil}).nome}${u.ativo?'':'<br><span class="pill mute">Desativado</span>'}</td>
-   <td style="text-align:right;white-space:nowrap">${eu?'':`<button class="btn sm" data-a="eqSenha" data-v="${u.user_id}" type="button">Nova senha</button> <button class="btn sm ${u.ativo?'danger':''}" data-a="eqAtivo" data-v="${u.user_id}|${u.ativo?0:1}" type="button">${u.ativo?'Desativar':'Reativar'}</button>`}</td></tr>`}).join('')}
+  ${equipeL.map(u=>{const eu=S.user&&u.user_id===S.user.id;return `<tr style="${u.ativo?'':'opacity:.6'}"><td><b>${esc(u.nome)}</b>${eu?' <span class="note">(você)</span>':''}<br><span class="note">${esc(u.email)}</span></td><td>${esc(nomesPerfis(u.perfis&&u.perfis.length?u.perfis:[u.perfil]))}${u.ativo?'':'<br><span class="pill mute">Desativado</span>'}</td>
+   <td style="text-align:right;white-space:nowrap">${eu?'':`<button class="btn sm" data-a="eqPerfis" data-v="${u.user_id}" type="button">Perfis</button> <button class="btn sm" data-a="eqSenha" data-v="${u.user_id}" type="button">Nova senha</button> <button class="btn sm ${u.ativo?'danger':''}" data-a="eqAtivo" data-v="${u.user_id}|${u.ativo?0:1}" type="button">${u.ativo?'Desativar':'Reativar'}</button>`}</td></tr>`}).join('')}
   </tbody></table></div></div>
   <div class="panel"><h3 style="margin-bottom:10px">O que cada perfil vê</h3>${Object.values(PERFIS).map(p=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>${p.nome}</b><br><span class="note">${p.desc}</span></div>`).join('')}</div></div>`;
+}
+function checksPerfis(sel){return Object.entries(PERFIS).map(([k,p])=>`<label class="row" style="gap:8px;align-items:flex-start;justify-content:flex-start;margin:4px 0"><input type="checkbox" name="pf" value="${k}" ${sel.includes(k)?'checked':''} style="width:auto;margin-top:3px"><span><b>${p.nome}</b><br><span class="note">${p.desc}</span></span></label>`).join('')}
+const perfisMarcados=d=>[...d.querySelectorAll('input[name=pf]:checked')].map(i=>i.value);
+function dlgPerfis(id){
+  const u=equipeL.find(x=>x.user_id===id);if(!u)return;
+  modal(`<h2>Perfis de ${esc(u.nome)}</h2><p class="note" style="margin:0">Marque todos os perfis que a pessoa deve ter. O acesso é a soma dos perfis marcados.</p>
+  <form id="fp" class="form"><fieldset class="full" style="border:0;padding:0;margin:0">${checksPerfis(u.perfis&&u.perfis.length?u.perfis:[u.perfil])}</fieldset>
+  <div class="full row" style="justify-content:flex-end"><button class="btn" data-x type="button">Cancelar</button><button class="btn primary" type="submit">Salvar</button></div></form>`,
+  d=>{d.addEventListener('click',e=>{if(e.target.dataset.x!==undefined)closeM()});
+   $('#fp',d).addEventListener('submit',async e=>{e.preventDefault();const l=perfisMarcados(d);if(!l.length)return toast('Marque ao menos um perfil');
+     if(await exec(async()=>{const {error}=await sb.from('equipe').update({perfis:l}).eq('user_id',id);if(error)throw error},'Perfis atualizados')){closeM();await loadAll();render()}})});
 }
 function dlgUsuario(){
   modal(`<h2>Convidar usuário</h2><p class="note" style="margin:0">O sistema cria o acesso e mostra uma senha provisória, que a pessoa troca no primeiro login.</p>
   <form id="fu" class="form"><label class="full">Nome<input id="un" required maxlength="120"></label><label class="full">E-mail (será o login)<input id="ue" type="email" required maxlength="120"></label>
-  <label class="full">Perfil<select id="up">${Object.entries(PERFIS).map(([k,p])=>`<option value="${k}">${p.nome} · ${p.desc}</option>`).join('')}</select></label>
+  <fieldset class="full" style="border:0;padding:0;margin:0"><legend style="font-weight:600;margin-bottom:6px">Perfis (marque um ou mais)</legend>${checksPerfis(['secretaria'])}</fieldset>
   <div class="full row" style="justify-content:flex-end"><button class="btn" data-x type="button">Cancelar</button><button class="btn primary" type="submit">Criar acesso</button></div></form>`,
   d=>{d.addEventListener('click',e=>{if(e.target.dataset.x!==undefined)closeM()});
    $('#fu',d).addEventListener('submit',async e=>{e.preventDefault();
-     try{const r=await fnAcesso({acao:'equipe_criar',nome:$('#un').value.trim(),email:$('#ue').value.trim(),perfil:$('#up').value});await loadAll();render();dlgSenha('Acesso criado',r.login,r.senha,$('#un').value.trim())}catch(err){toast(msgErro(err))}})});
+     try{const r=await fnAcesso({acao:'equipe_criar',nome:$('#un').value.trim(),email:$('#ue').value.trim(),perfis:perfisMarcados(d)});await loadAll();render();dlgSenha('Acesso criado',r.login,r.senha,$('#un').value.trim())}catch(err){toast(msgErro(err))}})});
 }
 
 /* ---------- site público, login e portal do sócio (modelo do site do clube) ---------- */
@@ -1068,7 +1081,7 @@ function setMode(m){
   S.mode=m;clearInterval(S.slideT);
   $('#appRoot').hidden=m!=='app';$('#site').hidden=m!=='site';$('#login').hidden=!(m==='login'||m==='loginsocio');$('#portal').hidden=m!=='socio';
   closeM();
-  if(m==='app'){if(!pTabs().includes(S.tab))S.tab=pTabs()[0];const pt=$('#perfilTxt');if(pt)pt.innerHTML='Perfil: <b style="color:#fff">'+esc(PERFIS[S.perfil].nome)+'</b>'+(S.user&&S.user.email?'<br>'+esc(S.user.email):'');drawNav();render()}
+  if(m==='app'){if(!pTabs().includes(S.tab))S.tab=pTabs()[0];const pt=$('#perfilTxt');if(pt)pt.innerHTML=(perfisDe().length>1?'Perfis: ':'Perfil: ')+'<b style="color:#fff">'+esc(nomesPerfis(perfisDe()))+'</b>'+(S.user&&S.user.email?'<br>'+esc(S.user.email):'');drawNav();render()}
   if(m==='site')drawSite();
   if(m==='login')drawLogin();
   if(m==='loginsocio')drawLoginSocio();
@@ -1284,6 +1297,7 @@ async function acaoView(a,v){
    case 'intDel':{if(!confirm('Excluir este registro de interessado? Não dá para desfazer.'))return;if(await exec(async()=>{const {data,error}=await sb.from('interessados').delete().eq('id',+v).select('id');if(error)throw error;if(!data||!data.length)throw new Error('Sem permissão para excluir')},'Registro excluído')){interessados=interessados.filter(x=>x.id!=v);render()}return}
    case 'intNovo':{const i=interessados.find(x=>x.id==v);return dlgNovo({nome:i.nome,tel:i.telefone,email:i.email})}
    case 'novoUsuario':return dlgUsuario();
+   case 'eqPerfis':return dlgPerfis(v);
    case 'eqSenha':{const u=equipeL.find(x=>x.user_id===v);if(!confirm('Gerar nova senha provisória para '+u.nome+'? A senha atual deixa de valer.'))return;try{const r=await fnAcesso({acao:'equipe_redefinir',user_id:v});dlgSenha('Nova senha',r.login,r.senha,u.nome)}catch(e){toast(msgErro(e))}return}
    case 'eqAtivo':{const [id,on]=v.split('|');const u=equipeL.find(x=>x.user_id===id);if(!confirm((on==='1'?'Reativar ':'Desativar ')+u.nome+'?'))return;if(await exec(async()=>{const {error}=await sb.from('equipe').update({ativo:on==='1'}).eq('user_id',id);if(error)throw error},on==='1'?'Usuário reativado':'Usuário desativado'))render();return}
   }
