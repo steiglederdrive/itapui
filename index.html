@@ -373,6 +373,8 @@ let ENVIOS=new Map();/* última tentativa de cobrança por e-mail de cada mensal
 /* ---------- dados e acesso ao banco (Supabase) ---------- */
 const TODAY=new Date();TODAY.setHours(12,0,0,0);
 const NOW_H=new Date().getHours();
+/* agenda das quadras: semana de segunda a domingo, aberta toda segunda às 6h (o banco confere de novo) */
+function agendaSemana(){const n=new Date(),dow=(n.getDay()+6)%7,aberta=!(dow===0&&n.getHours()<6);const fim=new Date(TODAY);fim.setDate(fim.getDate()+6-dow);return{dow,aberta,fim,dias:aberta?7-dow:0}}
 const initials=n=>String(n||'').split(' ').filter(Boolean).slice(0,2).map(p=>p[0]).join('').toUpperCase();
 const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const DSEM=['dom','seg','ter','qua','qui','sex','sáb'];
@@ -941,7 +943,7 @@ function vQuadras(){
   const aviso=fixas.length?`<p class="note" style="margin:0 0 12px"><b>${fixas.map(q=>esc(q.nome)).join(' e ')}:</b> neste dia valem os horários fixos das categorias, sem agendamento.${fer?'':' O agendamento abre aos sábados, domingos e feriados.'}</p>`:'';
   return `<div class="head"><div><h1>Reserva de quadras</h1><p>${nRes} reservas em ${new Date(S.dia+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}${fer?' · feriado: '+esc(fer.nome):''}</p></div>
    <div class="row"><div class="seg" role="group" aria-label="Modalidade">${['todas','Padel','Tênis'].map(t=>`<button type="button" data-a="tq" data-v="${t}" aria-pressed="${S.tipoQ===t}">${t==='todas'?'Todas':t}</button>`).join('')}</div>${pode?'<button class="btn" type="button" data-a="feriados">Feriados</button>':''}</div></div>
-  <div class="panel"><p class="note" style="margin:0 0 12px">Uso exclusivo dos sócios, sem cobrança. <b>Beach tênis</b> (4 quadras): uso livre, sem agendamento. <b>Padel</b> (2 quadras): agendamento só aos sábados, domingos e feriados; nos outros dias valem os dias fixos das categorias. <b>Tênis</b> (1 quadra): agendamento todos os dias.</p>
+  <div class="panel"><p class="note" style="margin:0 0 12px"><b>Agenda semanal:</b> a grade de cada semana (segunda a domingo) abre para os sócios <b>toda segunda-feira às 6h</b>. Gestor e secretaria podem lançar reservas em qualquer data. Uso exclusivo dos sócios, sem cobrança. <b>Beach tênis</b> (4 quadras): uso livre, sem agendamento. <b>Padel</b> (2 quadras): agendamento só aos sábados, domingos e feriados; nos outros dias valem os dias fixos das categorias. <b>Tênis</b> (1 quadra): agendamento todos os dias.</p>
   <div class="days" style="margin-bottom:14px">${dias.map(d=>`<button class="day" type="button" data-a="dia" data-v="${iso(d)}" aria-pressed="${iso(d)===S.dia}"><span>${DSEM[d.getDay()]}</span><b>${d.getDate()}</b></button>`).join('')}</div>
   ${aviso}<div class="tablewrap">${g}</div>
   <div class="row note" style="margin-top:12px;gap:18px"><span><span class="pill ok">Livre</span> toque para reservar</span><span><span class="pill" style="background:var(--clay-soft);color:var(--clay)">Reservado</span> toque para cancelar</span><span>Sócios em atraso não conseguem reservar.</span></div></div>`;
@@ -1244,9 +1246,11 @@ async function carregaOcup(){const {data}=await sb.rpc('ocupacao_quadras',{p_dat
 function drawReserva(){
   const AG=agendaveis();
   if(!rsv.q||!AG.some(x=>x.id===rsv.q))rsv.q=AG[0]&&AG[0].id;
-  const dias=[];for(let i=0;i<30;i++){const d=new Date(TODAY);d.setDate(d.getDate()+i);dias.push(d)}
+  const sem=agendaSemana(),dias=[];for(let i=0;i<sem.dias;i++){const d=new Date(TODAY);d.setDate(d.getDate()+i);dias.push(d)}
+  if(dias.length&&!dias.some(d=>iso(d)===rsv.dia))rsv.dia=iso(TODAY);
   const Q=AG.find(x=>x.id===rsv.q),ok=Q&&diaAgendavel(Q,rsv.dia),fer=feriadoDe(rsv.dia);
-  const corpo=!Q?'<p class="note">Nenhuma quadra com agendamento no momento.</p>'
+  const corpo=!sem.aberta?'<p class="note" style="margin:0"><b>A agenda desta semana abre hoje às 6h.</b> Volte depois desse horário para reservar.</p>'
+   :!Q?'<p class="note">Nenhuma quadra com agendamento no momento.</p>'
    :!ok?`<p class="note" style="margin:0"><b>${esc(Q.nome)}</b> só tem agendamento aos sábados, domingos e feriados. Neste dia valem os horários fixos das categorias. Escolha outro dia.</p>`
    :`<p class="note" style="margin:0">${fer?'Feriado: '+esc(fer.nome)+'. ':''}Uso exclusivo dos sócios, sem cobrança. Toque num horário livre para reservar.</p>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px">${HORAS.map(h=>{const busy=rsv.ocup.has(rsv.q+'|'+h),past=rsv.dia===iso(TODAY)&&h<=NOW_H;
@@ -1255,6 +1259,7 @@ function drawReserva(){
   <div class="form"><label>Dia<select id="rDia">${dias.map(d=>`<option value="${iso(d)}" ${iso(d)===rsv.dia?'selected':''}>${DSEM[d.getDay()]} ${fmtData(iso(d)).slice(0,5)}${feriadoDe(iso(d))?' (feriado)':''}</option>`).join('')}</select></label>
   <label>Quadra<select id="rQ">${AG.map(q=>`<option value="${q.id}" ${q.id===rsv.q?'selected':''}>${esc(q.nome)}</option>`).join('')}</select></label></div>
   <p class="note" style="margin:0">Beach tênis: uso livre, sem agendamento. Padel: agenda só em sábados, domingos e feriados. Tênis: agenda todos os dias.</p>
+  <p class="note" style="margin:0"><b>Agenda semanal:</b> você reserva até domingo (${fmtData(iso(sem.fim)).slice(0,5)}). A agenda da semana seguinte abre <b>segunda-feira às 6h</b>.</p>
   ${corpo}`,
   d=>{d.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.x!==undefined)return closeM();
       if(b.dataset.a==='rHora'){const h=+b.dataset.v;if(!confirm('Reservar '+nomeQ(rsv.q)+' em '+fmtData(rsv.dia).slice(0,5)+' às '+String(h).padStart(2,'0')+':00?'))return;
