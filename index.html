@@ -386,15 +386,15 @@ const QUADRAS=[
  {id:'bt2',nome:'Beach tênis 2',tipo:'Beach tênis',piso:'Areia',agenda:'livre'},
  {id:'bt3',nome:'Beach tênis 3',tipo:'Beach tênis',piso:'Areia',agenda:'livre'},
  {id:'bt4',nome:'Beach tênis 4',tipo:'Beach tênis',piso:'Areia',agenda:'livre'},
- {id:'pd1',nome:'Padel 1',tipo:'Padel',piso:'Grama sintética',agenda:'fds_feriado'},
- {id:'pd2',nome:'Padel 2',tipo:'Padel',piso:'Grama sintética',agenda:'fds_feriado'},
+ {id:'pd1',nome:'Padel 1',tipo:'Padel',piso:'',agenda:'fds_feriado'},
+ {id:'pd2',nome:'Padel 2',tipo:'Padel',piso:'',agenda:'fds_feriado'},
  {id:'tn1',nome:'Tênis',tipo:'Tênis',piso:'Saibro',agenda:'sempre'}];
 let FERIADOS=[];
 const agendaveis=()=>QUADRAS.filter(q=>q.agenda!=='livre');
 const feriadoDe=d=>FERIADOS.find(f=>f.data===d);
 function diaAgendavel(q,d){const Q=typeof q==='string'?QUADRAS.find(x=>x.id===q):q;if(!Q||Q.agenda==='livre')return false;if(Q.agenda==='sempre')return true;const w=new Date(d+'T12:00').getDay();return w===0||w===6||!!feriadoDe(d)}
 function regraQuadra(q){return q.agenda==='livre'?'Uso livre dos sócios, sem agendamento':q.agenda==='fds_feriado'?'Agendamento só aos sábados, domingos e feriados':'Agendamento todos os dias'}
-const HORAS=[];for(let h=7;h<=21;h++)HORAS.push(h);
+const HORAS=[];for(let h=8;h<=21;h++)HORAS.push(h);
 let socios=[],mens=[],reservas=[],salao=[],equipeL=[],interessados=[];
 const byId=id=>socios.find(s=>s.id==id);
 const SB_URL='https://lhflexebcxyfuvnyexza.supabase.co';
