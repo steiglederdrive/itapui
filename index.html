@@ -367,6 +367,7 @@ const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const brl=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+let ENVIOS=new Map();/* última tentativa de cobrança por e-mail de cada mensalidade (gestor/tesouraria) */
 /* ---------- dados e acesso ao banco (Supabase) ---------- */
 const TODAY=new Date();TODAY.setHours(12,0,0,0);
 const NOW_H=new Date().getHours();
@@ -433,6 +434,8 @@ async function loadAll(){
     const mp=new Map(socios.map(x=>[x.id,x]));
     d.forEach(x=>{const o=mp.get(x.titulo);if(o)o.dep.push({id:x.id,nome:x.nome,rel:x.parentesco,nasc:x.nascimento})});
     mens=m.map(x=>({id:x.id,sid:x.titulo,comp:String(x.competencia).slice(0,7),valor:Number(x.valor),venc:x.vencimento,pago:x.pago_em,forma:x.forma,status:(x.status==='aberta'&&x.vencimento<hj)?'atrasada':x.status}));
+    ENVIOS=new Map();
+    if(['gestor','tesouraria'].includes(S.perfil)){const ev=await fetchAll((a,b)=>sb.from('cobranca_envios').select('mensalidade_id,status,em').order('id').range(a,b));ev.forEach(x=>ENVIOS.set(x.mensalidade_id,{status:x.status,em:x.em}))}
     reservas=r.map(x=>({id:x.id,q:x.quadra,data:x.data,h:x.hora,sid:x.titulo}));
     salao=sa.map(x=>({id:x.id,data:x.data,sid:x.titulo,esp:x.espaco||'salao',evento:x.evento,valor:Number(x.valor),status:x.status}));
     equipeL=[];interessados=[];
@@ -442,6 +445,11 @@ async function loadAll(){
 }
 async function fnAcesso(body){
   const {data,error}=await sb.functions.invoke('acesso-clube',{body});
+  if(error){let m=error.message;try{const j=await error.context.json();m=j.erro||m}catch(e){}throw new Error(m)}
+  if(data&&data.erro)throw new Error(data.erro);
+  return data}
+async function fnCobranca(body){
+  const {data,error}=await sb.functions.invoke('enviar-cobranca',{body});
   if(error){let m=error.message;try{const j=await error.context.json();m=j.erro||m}catch(e){}throw new Error(m)}
   if(data&&data.erro)throw new Error(data.erro);
   return data}
@@ -764,6 +772,46 @@ async function abrirScanner(){
   ciclo();
 }
 /* ---------- MENSALIDADES ---------- */
+const emailOk=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e||'');
+function infoEnvio(m,s){
+  if(!(m.status==='aberta'||m.status==='atrasada'))return '';
+  const ev=ENVIOS.get(m.id);
+  if(ev&&ev.status==='enviado')return `<br><span class="note">✉ cobrança enviada em ${new Date(ev.em).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})}</span>`;
+  if(ev&&ev.status==='erro')return '<br><span class="note" style="color:#b3141a">falha ao enviar o e-mail</span>';
+  if(!emailOk(s.email))return '<br><span class="note">sem e-mail cadastrado</span>';
+  return ''}
+async function rodarEnvio(body,btn){
+  const t={enviados:0,erros:0,sem_email:0,aviso:''};
+  for(let i=0;i<40;i++){
+    const r=await fnCobranca(body);
+    t.enviados+=r.enviados;t.erros+=r.erros;t.sem_email=Math.max(t.sem_email,r.sem_email);if(r.aviso)t.aviso=r.aviso;
+    if(btn)btn.textContent='Enviando… '+t.enviados;
+    if(!r.restantes||(!r.enviados&&!r.erros))break}
+  return t}
+function msgEnvio(t){
+  return (t.enviados?t.enviados+(t.enviados===1?' e-mail enviado':' e-mails enviados'):'Nenhum e-mail enviado')+(t.erros?', '+t.erros+' com falha':'')+(t.sem_email?', '+t.sem_email+' sem e-mail':'')+(t.aviso?'. '+t.aviso:'')}
+function dlgEnviarCob(){
+  const ab=mens.filter(m=>m.comp===S.compM&&(m.status==='aberta'||m.status==='atrasada'));
+  const novos=ab.filter(m=>!ENVIOS.has(m.id)||ENVIOS.get(m.id).status!=='enviado');
+  const semMail=novos.filter(m=>{const s=byId(m.sid);return !s||!emailOk(s.email)});
+  const vai=novos.length-semMail.length,ja=ab.length-novos.length;
+  const mes=MESES[+S.compM.slice(5)-1]+'/'+S.compM.slice(0,4);
+  modal(`<h2>Enviar cobranças por e-mail</h2><p class="note" style="margin:0">Competência <b>${mes}</b>. Cada e-mail leva o valor, o vencimento e o QR Pix do clube (SPORT CLUB ITAPUI). A baixa continua manual, pela tesouraria.</p>
+  <div class="panel" style="margin:12px 0;padding:12px"><b>${vai}</b> ${vai===1?'sócio vai receber':'sócios vão receber'} agora${ja?` · ${ja} já ${ja===1?'recebeu':'receberam'} e não ${ja===1?'recebe':'recebem'} de novo`:''}${semMail.length?` · <span style="color:#b3141a">${semMail.length} sem e-mail cadastrado</span>`:''}</div>
+  <div class="row" style="justify-content:flex-end"><button class="btn" data-x type="button">Cancelar</button><button class="btn primary" id="envGo" type="button" ${vai?'':'disabled'}>Enviar ${vai}</button></div>`,
+  d=>{d.addEventListener('click',e=>{if(e.target.dataset.x!==undefined)closeM()});
+   $('#envGo',d).addEventListener('click',async e=>{const b=e.currentTarget;b.disabled=true;
+     try{const t=await rodarEnvio({competencia:S.compM},b);await loadAll();closeM();render();toast(msgEnvio(t))}
+     catch(er){b.disabled=false;b.textContent='Enviar '+vai;toast(msgErro(er))}})});
+}
+async function enviarUm(id){
+  const m=mens.find(x=>x.id===id),s=m&&byId(m.sid);
+  if(!m||!s)return;
+  if(!emailOk(s.email))return toast('Este sócio não tem e-mail cadastrado');
+  const ev=ENVIOS.get(id);
+  if(!confirm((ev&&ev.status==='enviado'?'Já foi enviada uma cobrança. Enviar de novo para ':'Enviar a cobrança por e-mail para ')+s.nome+' ('+s.email+')?'))return;
+  try{const t=await rodarEnvio({ids:[id]});await loadAll();render();toast(msgEnvio(t))}catch(er){toast(msgErro(er))}
+}
 function vMensLista(){
   const comps=[...new Set([...mens.map(m=>m.comp),mesISO(TODAY)])].sort().reverse();
   if(!comps.includes(S.compM))S.compM=comps[0];
@@ -773,12 +821,12 @@ function vMensLista(){
   const l=f==='todas'?dosMes:dosMes.filter(m=>m.status===f);
   const rec=dosMes.filter(m=>m.status==='paga').reduce((a,m)=>a+m.valor,0),pend=dosMes.filter(m=>m.status==='aberta'||m.status==='atrasada').reduce((a,m)=>a+m.valor,0);
   return `<div class="head"><div><h1>Mensalidades</h1><p>Recebido ${brl(rec)} · Pendente ${brl(pend)}</p></div>
-   <div class="row" style="gap:10px;align-items:flex-end"><label>Competência<select id="compSel">${comps.map(c=>`<option value="${c}" ${c===S.compM?'selected':''}>${MESES[+c.slice(5)-1]}/${c.slice(0,4)}</option>`).join('')}</select></label>${edita?'<button class="btn primary" data-a="gerarMens" type="button">Gerar mensalidades</button>':''}</div></div>
+   <div class="row" style="gap:10px;align-items:flex-end"><label>Competência<select id="compSel">${comps.map(c=>`<option value="${c}" ${c===S.compM?'selected':''}>${MESES[+c.slice(5)-1]}/${c.slice(0,4)}</option>`).join('')}</select></label>${edita&&dosMes.some(m=>m.status==='aberta'||m.status==='atrasada')?'<button class="btn" data-a="envCob" type="button">Enviar cobranças por e-mail</button>':''}${edita?'<button class="btn primary" data-a="gerarMens" type="button">Gerar mensalidades</button>':''}</div></div>
   <div class="panel"><div class="seg" style="margin-bottom:12px" role="group" aria-label="Filtro">
    ${[['todas','Todas'],['aberta','Em aberto'],['atrasada','Atrasadas'],['paga','Pagas']].map(([k,t])=>`<button type="button" data-a="fm" data-v="${k}" aria-pressed="${f===k}">${t} ${cnt(k)}</button>`).join('')}</div>
   <div class="tablewrap"><table><thead><tr><th>Sócio</th><th>Plano</th><th>Vencimento</th><th>Valor</th><th>Situação</th><th></th></tr></thead><tbody>
-  ${l.length?l.map(m=>{const s=byId(m.sid)||{nome:'—',id:m.sid,plano:''},[c,t]=pillM(m.status);return `<tr><td><b>${esc(s.nome)}</b><br><span class="note">título ${s.id}</span></td><td>${esc((PLANOS[s.plano]||{nome:''}).nome)}</td><td>${fmtData(m.venc)}</td><td>${brl(m.valor)}</td><td><span class="pill ${c}">${t}</span>${m.pago?`<br><span class="note">em ${fmtData(m.pago)}${m.forma?' · '+m.forma:''}</span>`:''}</td>
-   <td style="text-align:right;white-space:nowrap">${edita&&(m.status==='aberta'||m.status==='atrasada')?`<button class="btn sm primary" data-a="pay" data-v="${m.id}" type="button">Dar baixa</button>`:''}</td></tr>`}).join(''):`<tr><td colspan="6" class="note">${dosMes.length?'Nenhuma mensalidade neste filtro.':'Nenhuma mensalidade gerada nesta competência.'}</td></tr>`}
+  ${l.length?l.map(m=>{const s=byId(m.sid)||{nome:'—',id:m.sid,plano:''},[c,t]=pillM(m.status);return `<tr><td><b>${esc(s.nome)}</b><br><span class="note">título ${s.id}</span></td><td>${esc((PLANOS[s.plano]||{nome:''}).nome)}</td><td>${fmtData(m.venc)}</td><td>${brl(m.valor)}</td><td><span class="pill ${c}">${t}</span>${m.pago?`<br><span class="note">em ${fmtData(m.pago)}${m.forma?' · '+m.forma:''}</span>`:''}${infoEnvio(m,s)}</td>
+   <td style="text-align:right;white-space:nowrap">${edita&&(m.status==='aberta'||m.status==='atrasada')?`${emailOk(s.email)?`<button class="btn sm" data-a="envUm" data-v="${m.id}" type="button">Enviar e-mail</button> `:''}<button class="btn sm primary" data-a="pay" data-v="${m.id}" type="button">Dar baixa</button>`:''}</td></tr>`}).join(''):`<tr><td colspan="6" class="note">${dosMes.length?'Nenhuma mensalidade neste filtro.':'Nenhuma mensalidade gerada nesta competência.'}</td></tr>`}
   </tbody></table></div></div>`;
 }
 
@@ -1188,6 +1236,8 @@ async function acaoView(a,v){
    case 'visM':S.visM=v;return render();
    case 'pay':return dlgBaixa(+v);
    case 'gerarMens':return dlgGerar();
+   case 'envCob':return dlgEnviarCob();
+   case 'envUm':return enviarUm(+v);
    case 'tq':S.tipoQ=v;return render();
    case 'feriados':return dlgFeriados();
    case 'dia':S.dia=v;return render();
