@@ -1009,13 +1009,13 @@ function setMode(m){
 }
 function planosHtml(mod){
   return ['pat','con'].map(t=>{const k=t+'_'+mod,p=PLANOS[k],dest=k==='con_ind';
-    return `<div class="v-plan ${dest?'dest':''}">${dest?'<span class="bd">MAIS ESCOLHIDO</span>':''}<h3>${p.tipo}</h3><div class="tipo">${p.nome}</div><div class="pr">${brl(p.valor)}<small> / mês</small></div><ul><li>Acesso total às dependências do Clube</li><li>Desconto nos salões e festas</li>${p.dep?`<li>Até ${p.dep} dependentes</li>`:'<li>Plano individual, sem dependentes</li>'}</ul><button class="v-btn ${dest?'red':'out'}" type="button" data-plano="${k}">Quero este plano</button></div>`}).join('');
+    return `<div class="v-plan ${dest?'dest':''}">${dest?'<span class="bd">MAIS ESCOLHIDO</span>':''}<h3>${p.tipo}</h3><div class="tipo">${p.nome}</div><div class="pr">${brl(p.valor)}<small> / mês</small></div><ul><li>Acesso total às dependências do Clube</li><li>Desconto no salão e festas</li>${p.dep?`<li>Até ${p.dep} dependentes</li>`:'<li>Plano individual, sem dependentes</li>'}</ul><button class="v-btn ${dest?'red':'out'}" type="button" data-plano="${k}">Quero este plano</button></div>`}).join('');
 }
 function drawSite(){
   const Q=(d)=>`<svg viewBox="0 0 24 24">${d}</svg>`;
-  const mq=['Padel','Tênis','Beach Tennis','Piscinas','Restaurante','Salões e Quiosque','Desde 1926'].map(x=>`<span>${x}</span>`).join('');
+  const mq=['Padel','Tênis','Beach Tennis','Piscinas','Restaurante','Salão e Quiosque','Desde 1926'].map(x=>`<span>${x}</span>`).join('');
   $('#site').innerHTML=`<header class="v-head"><div class="v-wrap"><div class="v-brand" data-anchor="inicio"><img src="${IMG.escudo}" alt="Escudo do Clube Itapuí"><div><b>Clube Itapuí</b><small>ESPORTE • SAÚDE • BEM-ESTAR</small></div></div>
-   <nav class="v-nav"><a class="on" data-anchor="inicio">Início</a><a data-anchor="estruturas">Estruturas</a><a data-anchor="clube">O Clube</a><a data-anchor="planos">Planos</a><a data-anchor="saloes">Salões</a><a data-wa="Olá! Gostaria de falar com o Clube Itapuí.">Contato</a></nav>
+   <nav class="v-nav"><a class="on" data-anchor="inicio">Início</a><a data-anchor="estruturas">Estruturas</a><a data-anchor="clube">O Clube</a><a data-anchor="planos">Planos</a><a data-anchor="saloes">Salão</a><a data-wa="Olá! Gostaria de falar com o Clube Itapuí.">Contato</a></nav>
    <button class="v-btn ink" type="button" data-m="loginsocio">Área do Sócio</button></div></header>
   <section id="inicio" class="v-hero"><div class="v-bg">${SLIDES.map((k,i)=>`<i class="${i?'':'on'}" style="background-image:url(${IMG[k]})"></i>`).join('')}</div><div class="v-shade"></div><div class="v-slash"></div>
    <div class="v-wrap v-in"><span class="v-tag">1926 — 2026 · 100 ANOS</span><h1><small>Clube</small>Itapuí<em>.</em></h1><p class="lema">Mais esporte. Mais saúde. Mais momentos juntos.</p>
@@ -1031,19 +1031,19 @@ function drawSite(){
     <div class="v-card mid" style="background-image:url(${IMG.tenis})"><div><b>Quadra de Tênis</b><span>Reserve pela Área do Sócio</span></div></div>
     <div class="v-card mid" style="background-image:url(${IMG.beach})"><div><b>Beach Tennis</b><span>Quadras de areia</span></div></div>
     <div class="v-card wide" style="background-image:url(${IMG.hero})"><div><b>Piscinas e Restaurante</b><span>Piscinas adulto e infantil, e almoço executivo</span></div></div>
-    <div class="v-card sm solid">${Q('<path d="M4 20l5-14 9 9zM14 5l1-2M18 8l2-1M17 3l-.5 1.500M8 4h.01M20 12h.01"/>')}<div><b>Salões e Quiosque</b><span>Para locação</span></div></div></div></div></section>
+    <div class="v-card sm solid">${Q('<path d="M4 20l5-14 9 9zM14 5l1-2M18 8l2-1M17 3l-.5 1.500M8 4h.01M20 12h.01"/>')}<div><b>Salão e Quiosque</b><span>Para locação</span></div></div></div></div></section>
   <section id="clube" class="v-sec v-soft"><div class="v-wrap v-hist"><div class="v-photo" style="background-image:url(${IMG.sobre})"><span class="gold">Desde 23/07/1926</span></div>
    <div><p class="v-eyebrow">O Clube</p><h2 class="v-h2">Cem anos de história.</h2>
     <p>O Clube Itapuí foi fundado no dia 23 de julho de 1926, sob a denominação Sport Club Itapuhy, no Centro de Guaíba, quando a cidade ainda era distrito de Porto Alegre e tinha o nome de Vila das Pedras Brancas.</p>
     <div class="v-quote">Itapuí vem do tupi e significa “pedra branca”.</div>
-    <p>O nome foi sugerido pelo primeiro presidente, Telmo Silva, e era a denominação dada à cidade de Guaíba na época. Hoje o clube reúne quadras, piscinas, restaurante e salões para locação.</p>
+    <p>O nome foi sugerido pelo primeiro presidente, Telmo Silva, e era a denominação dada à cidade de Guaíba na época. Hoje o clube reúne quadras, piscinas, restaurante, salão de festas e quiosque para locação.</p>
     <div class="v-stats"><div><b>1926</b><span>ano de fundação</span></div><div><b>3</b><span>modalidades de quadra</span></div><div><b>1320</b><span>pessoas no Salão Principal</span></div></div></div></div></section>
-  <section id="planos" class="v-sec"><div class="v-wrap"><p class="v-eyebrow">Planos</p><h2 class="v-h2">Escolha o seu jeito de fazer parte.</h2><p class="v-lead">Todos os planos têm acesso total às dependências do clube e desconto nos salões e festas.</p>
+  <section id="planos" class="v-sec"><div class="v-wrap"><p class="v-eyebrow">Planos</p><h2 class="v-h2">Escolha o seu jeito de fazer parte.</h2><p class="v-lead">Todos os planos têm acesso total às dependências do clube e desconto no salão e festas.</p>
    <div class="v-seg" role="group" aria-label="Modalidade do plano"><button type="button" data-pm="ind" aria-pressed="true">Individual</button><button type="button" data-pm="fam" aria-pressed="false">Família</button></div>
    <div class="v-plans" id="vPlanos">${planosHtml('ind')}</div></div></section>
   <section id="saloes" class="v-sec v-night"><div class="v-wrap v-salao"><div class="v-big">1320<small>pessoas no Salão Principal</small></div>
-   <div><p class="v-eyebrow" style="color:#fff">Salões e Quiosque</p><h2 class="v-h2">Sua festa no Itapuí.</h2><p class="v-lead">Espaço para aniversários, formaturas e confraternizações. Fale com a gente para reservar a sua data.</p>
-    <div class="v-price"><small>Locação a partir de</small>${brl(1900)}</div><button class="v-btn red" type="button" data-wa="Olá! Gostaria de informações sobre o aluguel dos salões do Clube Itapuí." style="background:#fff;color:#b3141a;box-shadow:none">Consultar uma data →</button></div></div></section>
+   <div><p class="v-eyebrow" style="color:#fff">Salão e Quiosque</p><h2 class="v-h2">Sua festa no Itapuí.</h2><p class="v-lead">Espaço para aniversários, formaturas e confraternizações. Fale com a gente para reservar a sua data.</p>
+    <div class="v-price"><small>Locação a partir de</small>${brl(1900)}</div><button class="v-btn red" type="button" data-wa="Olá! Gostaria de informações sobre o aluguel do salão de festas do Clube Itapuí." style="background:#fff;color:#b3141a;box-shadow:none">Consultar uma data →</button></div></div></section>
   <section class="v-sec"><div class="v-wrap v-duo"><div class="v-box ev"><p class="v-eyebrow">Agenda</p><h3>Próximos eventos</h3><p>Em breve novos eventos.</p></div>
    <div class="v-box acc"><p class="v-eyebrow" style="color:#e8353b">Para quem já é sócio</p><h3>Acesse sua conta</h3><p>Consulte seus dados, mensalidades e recibos, mostre a carteirinha digital e faça reservas.</p><button class="v-btn red" type="button" data-m="loginsocio">Área do Sócio →</button></div></div></section>
     <footer class="v-foot"><div class="v-wrap"><div class="v-brand"><img src="${IMG.escudo}" alt=""><b style="font:800 18px var(--f-disp)">Clube Itapuí</b></div><small>© 2026 Clube Itapuí · Administração · <a data-m="login">Acesso da gestão</a></small></div></footer>`;
@@ -1057,7 +1057,7 @@ function drawLogin(){
    <form class="lg-form" id="fLogin"><span class="chip">PAINEL ADMINISTRATIVO</span><h1>Bem-vindo de volta</h1><p>Entre com seu e-mail e senha para acessar o painel.</p>
     <label for="lgE">E-mail</label><input id="lgE" type="email" placeholder="voce@clube.com" autocomplete="username" required><label for="lgS">Senha</label><input id="lgS" type="password" placeholder="Sua senha" autocomplete="current-password" required>
     <div id="lgErr" role="alert" style="color:#b42318;font-size:14px;min-height:20px;margin:6px 0"></div>
-    <button class="s-btn red" type="submit">Entrar →</button><div class="alt">É sócio? <a data-m="loginsocio">Acesse a Área do Sócio</a></div></form></div></div>`;
+    <button class="s-btn red" type="submit">Entrar →</button><div class="alt" style="border:0;padding-top:8px"><a data-esq="gestao">Esqueci minha senha</a></div><div class="alt">É sócio? <a data-m="loginsocio">Acesse a Área do Sócio</a></div></form></div></div>`;
 }
 function drawLoginSocio(){
   $('#login').innerHTML=`<div class="lg"><div class="lg-l" style="background-image:url(${IMG.tenis})"><div class="lg-brand"><div class="bx"><img src="${IMG.escudo}" alt=""></div><div><b>Clube Itapuí</b><small>DESDE 1926</small></div></div>
@@ -1066,7 +1066,7 @@ function drawLoginSocio(){
    <form class="lg-form" id="fLoginSocio"><span class="chip">ÁREA DO SÓCIO</span><h1>Acesse sua conta</h1><p>Entre com seu CPF e senha para consultar mensalidades, carteirinha e reservas.</p>
     <label for="lsC">CPF</label><input id="lsC" inputmode="numeric" placeholder="000.000.000-00" autocomplete="username" required><label for="lsS">Senha</label><input id="lsS" type="password" placeholder="Sua senha" autocomplete="current-password" required>
     <div id="lgErr" role="alert" style="color:#b42318;font-size:14px;min-height:20px;margin:6px 0"></div>
-    <button class="s-btn red" type="submit">Entrar →</button>
+    <button class="s-btn red" type="submit">Entrar →</button><div class="alt" style="border:0;padding-top:8px"><a data-esq="socio">Esqueci minha senha</a></div>
     <div class="alt" style="margin-top:8px">Primeiro acesso? A secretaria do clube cria o seu acesso e entrega uma senha provisória.</div>
     <div class="alt" style="margin-top:8px">Faz parte da gestão? <a data-m="login">Acesso da gestão</a></div></form></div></div>`;
 }
