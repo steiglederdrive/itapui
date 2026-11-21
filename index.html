@@ -408,6 +408,7 @@ const mesISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 function cpfOk(c){c=soDig(c);if(c.length!==11||/^(\d)\1{10}$/.test(c))return false;for(let t=9;t<11;t++){let s=0;for(let i=0;i<t;i++)s+=+c[i]*(t+1-i);const d=(s*10%11)%10;if(d!==+c[t])return false}return true}
 function msgErro(e){const m=(e&&e.message)||String(e||'');
  if(/duplicate key|23505/.test(m)&&/cpf/i.test(m))return 'Já existe um sócio com este CPF';
+ if(/duplicate key|23505/.test(m)&&/titulo|socios_pkey/i.test(m))return 'Já existe um sócio com este número de título';
  if(/duplicate key|23505/.test(m))return 'Esse registro já existe';
  if(/row-level security|permission denied|42501/.test(m))return 'Sem permissão para esta ação';
  if(/Failed to fetch|NetworkError|Load failed/.test(m))return 'Sem conexão com o servidor. Tente de novo';
@@ -655,10 +656,12 @@ function dlgEditar(id){
       const ok=await exec(async()=>{const {error}=await sb.from('socios').update({nome:$('#en').value.trim(),nascimento:$('#enasc').value,telefone:$('#etel').value.trim()||null,email:$('#email').value.trim()||null,plano:pl}).eq('titulo',id);if(error)throw error},'Dados salvos');
       if(ok){dlgSocio(id);render()}})});
 }
+const proxTitulo=()=>Math.max(1000,...socios.map(s=>s.id))+1;
 function dlgNovo(pre){
   pre=pre||{};
   modal(`<h2>Novo sócio</h2><form id="fs" class="form">
   <label class="full">Nome completo<input id="nn" required maxlength="120" value="${esc(pre.nome||'')}"></label>
+  <label>Número do título<input id="ntit" inputmode="numeric" maxlength="9" placeholder="Em branco = próximo (${proxTitulo()})"></label>
   <label>CPF<input id="ncpf" required inputmode="numeric" placeholder="000.000.000-00"></label>
   <label>Nascimento<input id="nnasc" type="date" required max="${iso(TODAY)}"></label>
   <label>Telefone<input id="ntel" maxlength="30" value="${esc(pre.tel||'')}"></label>
@@ -668,8 +671,11 @@ function dlgNovo(pre){
   d=>{d.addEventListener('click',e=>{if(e.target.dataset.x!==undefined)closeM()});
    $('#fs',d).addEventListener('submit',async e=>{e.preventDefault();
     if(!cpfOk($('#ncpf').value)){toast('CPF inválido. Confira os números.');return}
+    const tt=soDig($('#ntit').value);
+    if($('#ntit').value.trim()&&(!tt||+tt<1)){toast('Número do título inválido. Use apenas números.');return}
+    if(tt&&byId(+tt)){toast('Já existe um sócio com o título '+(+tt)+' ('+nomeS(+tt)+')');return}
     let novo=null;
-    const ok=await exec(async()=>{const {data,error}=await sb.from('socios').insert({nome:$('#nn').value.trim(),cpf:soDig($('#ncpf').value),nascimento:$('#nnasc').value,telefone:$('#ntel').value.trim()||null,email:$('#nmail').value.trim()||null,plano:$('#nplano').value}).select('titulo').single();if(error)throw error;novo=data.titulo},'Sócio cadastrado');
+    const ok=await exec(async()=>{const {data,error}=await sb.from('socios').insert({...(tt?{titulo:+tt}:{}),nome:$('#nn').value.trim(),cpf:soDig($('#ncpf').value),nascimento:$('#nnasc').value,telefone:$('#ntel').value.trim()||null,email:$('#nmail').value.trim()||null,plano:$('#nplano').value}).select('titulo').single();if(error)throw error;novo=data.titulo},'Sócio cadastrado');
     if(ok){render();dlgSocio(novo)}})});
 }
 
