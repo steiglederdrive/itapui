@@ -828,6 +828,25 @@ function dlgEnviarCob(){
      try{const t=await rodarEnvio({competencia:S.compM},b);await loadAll();closeM();render();toast(msgEnvio(t))}
      catch(er){b.disabled=false;b.textContent='Enviar '+vai;toast(msgErro(er))}})});
 }
+/* ---------- WhatsApp (botão manual: abre o WhatsApp com a mensagem pronta; o envio é feito pela pessoa) ---------- */
+const PIX_CHAVE='financeiro.scitapui@gmail.com',PIX_NOME='SPORT CLUB ITAPUI',PIX_CIDADE='GUAIBA';
+const tlv=(id,v)=>id+String(v.length).padStart(2,'0')+v;
+function crc16(s){let c=0xffff;for(const b of new TextEncoder().encode(s)){c^=b<<8;for(let i=0;i<8;i++)c=c&0x8000?((c<<1)^0x1021)&0xffff:(c<<1)&0xffff}return c.toString(16).toUpperCase().padStart(4,'0')}
+function pixCopiaCola(valor,txid){
+  const conta=tlv('00','br.gov.bcb.pix')+tlv('01',PIX_CHAVE);
+  const base=tlv('00','01')+tlv('01','11')+tlv('26',conta)+tlv('52','0000')+tlv('53','986')+tlv('54',valor.toFixed(2))+tlv('58','BR')+tlv('59',PIX_NOME)+tlv('60',PIX_CIDADE)+tlv('62',tlv('05',String(txid).replace(/[^A-Za-z0-9]/g,'').slice(0,25)||'***'))+'6304';
+  return base+crc16(base)}
+function foneWa(t){let d=String(t||'').replace(/\D/g,'');if(d.startsWith('55')&&d.length>=12)d=d.slice(2);if(d.length<10||d.length>11)return null;if(d.length===11&&d[2]!=='9')return null;return '55'+d}
+function msgWa(m,s,tipo){
+  const primeiro=(s.nome||'').trim().split(/\s+/)[0],mes=cap(MESES[+m.comp.slice(5)-1])+'/'+m.comp.slice(0,4);
+  if(tipo==='rec'){const num=String(m.pago).slice(0,4)+'-'+String(m.id).padStart(6,'0'),FM={pix:'Pix',dinheiro:'Dinheiro',cartao:'Cartão',boleto:'Boleto',outro:'Outro'};
+    return `Olá, ${primeiro}! Recebemos o pagamento da sua mensalidade de ${mes} do Clube Itapuí.\n\n*Recibo nº ${num}*\nValor: ${brl(m.valor)}\nData do pagamento: ${fmtData(m.pago)}${m.forma?'\nForma: '+(FM[m.forma]||m.forma):''}\n\nObrigado! Clube Itapuí`}
+  const vencida=m.venc<iso(TODAY),codigo=pixCopiaCola(m.valor,'ITAPUI'+s.id+'M'+m.comp.replace('-',''));
+  return `Olá, ${primeiro}! Sua mensalidade de ${mes} do Clube Itapuí (${brl(m.valor)}) ${vencida?'venceu':'vence'} em ${fmtData(m.venc)}.\n\nPara pagar por Pix, abra o app do seu banco, escolha Pix > Pix Copia e Cola e cole o código que está no final desta mensagem. Confira: beneficiário ${PIX_NOME}, valor ${brl(m.valor)}.\n\nSe você já pagou, desconsidere esta mensagem. Obrigado! Clube Itapuí\n\nPix Copia e Cola:\n${codigo}`}
+function abrirWa(id,tipo){
+  const m=mens.find(x=>x.id===id),s=m&&byId(m.sid);if(!m||!s)return;
+  const f=foneWa(s.tel);if(!f)return toast('Este sócio não tem um celular válido cadastrado');
+  window.open('https://wa.me/'+f+'?text='+encodeURIComponent(msgWa(m,s,tipo)),'_blank','noopener')}
 async function enviarRecibo(id){
   const m=mens.find(x=>x.id===id),s=m&&byId(m.sid);
   if(!m||!s)return;
@@ -858,7 +877,7 @@ function vMensLista(){
    ${[['todas','Todas'],['aberta','Em aberto'],['atrasada','Atrasadas'],['paga','Pagas']].map(([k,t])=>`<button type="button" data-a="fm" data-v="${k}" aria-pressed="${f===k}">${t} ${cnt(k)}</button>`).join('')}</div>
   <div class="tablewrap"><table><thead><tr><th>Sócio</th><th>Plano</th><th>Vencimento</th><th>Valor</th><th>Situação</th><th></th></tr></thead><tbody>
   ${l.length?l.map(m=>{const s=byId(m.sid)||{nome:'—',id:m.sid,plano:''},[c,t]=pillM(m.status);return `<tr><td><b>${esc(s.nome)}</b><br><span class="note">título ${s.id}</span></td><td>${esc((PLANOS[s.plano]||{nome:''}).nome)}</td><td>${fmtData(m.venc)}</td><td>${brl(m.valor)}</td><td><span class="pill ${c}">${t}</span>${m.pago?`<br><span class="note">em ${fmtData(m.pago)}${m.forma?' · '+m.forma:''}</span>`:''}${infoEnvio(m,s)}</td>
-   <td style="text-align:right;white-space:nowrap">${edita&&(m.status==='aberta'||m.status==='atrasada')?`${emailOk(s.email)?`<button class="btn sm" data-a="envUm" data-v="${m.id}" type="button">Enviar e-mail</button> `:''}<button class="btn sm primary" data-a="pay" data-v="${m.id}" type="button">Dar baixa</button>`:''}${edita&&m.status==='paga'&&emailOk(s.email)?`<button class="btn sm" data-a="envRec" data-v="${m.id}" type="button">Enviar recibo</button>`:''}</td></tr>`}).join(''):`<tr><td colspan="6" class="note">${dosMes.length?'Nenhuma mensalidade neste filtro.':'Nenhuma mensalidade gerada nesta competência.'}</td></tr>`}
+   <td style="text-align:right;white-space:nowrap">${edita&&(m.status==='aberta'||m.status==='atrasada')?`${emailOk(s.email)?`<button class="btn sm" data-a="envUm" data-v="${m.id}" type="button">Enviar e-mail</button> `:''}${foneWa(s.tel)?`<button class="btn sm" data-a="waCob" data-v="${m.id}" type="button" title="Abre o WhatsApp com a cobrança e o Pix prontos">WhatsApp</button> `:''}<button class="btn sm primary" data-a="pay" data-v="${m.id}" type="button">Dar baixa</button>`:''}${edita&&m.status==='paga'&&emailOk(s.email)?`<button class="btn sm" data-a="envRec" data-v="${m.id}" type="button">Enviar recibo</button> `:''}${edita&&m.status==='paga'&&foneWa(s.tel)?`<button class="btn sm" data-a="waRec" data-v="${m.id}" type="button" title="Abre o WhatsApp com o recibo pronto">WhatsApp</button>`:''}</td></tr>`}).join(''):`<tr><td colspan="6" class="note">${dosMes.length?'Nenhuma mensalidade neste filtro.':'Nenhuma mensalidade gerada nesta competência.'}</td></tr>`}
   </tbody></table></div></div>`;
 }
 
@@ -1320,6 +1339,8 @@ async function acaoView(a,v){
    case 'envCob':return dlgEnviarCob();
    case 'envUm':return enviarUm(+v);
    case 'envRec':return enviarRecibo(+v);
+   case 'waCob':return abrirWa(+v,'cob');
+   case 'waRec':return abrirWa(+v,'rec');
    case 'tq':S.tipoQ=v;return render();
    case 'feriados':return dlgFeriados();
    case 'dia':S.dia=v;return render();
