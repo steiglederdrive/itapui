@@ -328,6 +328,7 @@ label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--mu
 .v-salao .v-lead{color:#d4d4d8}.v-salao>div:last-child{padding-right:6%}.v-price{font:800 40px var(--f-disp);letter-spacing:-.03em;margin:14px 0 22px}.v-price small{font:600 15px var(--f-body);display:block;color:#fff;opacity:.85;letter-spacing:0;margin-bottom:2px}
 .v-duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
 .v-box{border-radius:24px;padding:30px;min-width:0}.v-box.ev{background:var(--s-card);border:1px solid var(--s-line)}.v-box.acc{background:var(--s-night);color:#fff}
+.v-evl{display:grid;gap:12px}.v-evi{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--s-line);border-radius:16px;padding:14px 16px}.v-evd{flex:none;width:58px;height:62px;border-radius:12px;background:#d71920;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}.v-evd b{font:800 24px var(--f-disp)}.v-evd span{font:700 11px var(--f-disp);letter-spacing:.08em;margin-top:4px}.v-evt{min-width:0}.v-evt strong{display:block;font:800 18px var(--f-disp);color:#1b1b1f}.v-evt small{display:block;color:var(--s-mute);margin-top:3px;font-size:13px}
 .v-box h3{font:800 26px var(--f-disp);letter-spacing:-.02em;margin:0 0 8px}.v-box p{color:var(--s-mute);margin:0 0 20px;line-height:1.55}.v-box.acc p{color:#c8c8cf}
 .v-contact{background:linear-gradient(135deg,#b3141a,#d71920 55%,#e8353b);color:#fff}
 .v-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:760px;margin-top:26px}
@@ -1055,6 +1056,15 @@ function setMode(m){
   try{history.replaceState(null,'','#'+(m==='app'?S.tab:m))}catch(e){}
   window.scrollTo(0,0);
 }
+/* Próximos eventos da página inicial: para incluir outro, é só acrescentar uma linha (data AAAA-MM-DD, hora, título, detalhe opcional). Eventos passados somem sozinhos. */
+const EVENTOS=[
+  {data:'2026-12-15',hora:'19h',titulo:'Natal Havaiano',info:''}
+];
+function eventosHtml(){
+  const hj=iso(TODAY),M=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  const l=EVENTOS.filter(e=>e.data>=hj).sort((a,b)=>a.data.localeCompare(b.data)||a.hora.localeCompare(b.hora));
+  if(!l.length)return '<p>Em breve novos eventos.</p>';
+  return '<div class="v-evl">'+l.map(e=>`<div class="v-evi"><div class="v-evd"><b>${e.data.slice(8)}</b><span>${M[+e.data.slice(5,7)-1]}</span></div><div class="v-evt"><strong>${esc(e.titulo)}</strong><small>${e.data.slice(8)}/${e.data.slice(5,7)}/${e.data.slice(0,4)} às ${esc(e.hora)}${e.info?' · '+esc(e.info):''}</small></div></div>`).join('')+'</div>'}
 function planosHtml(mod){
   return ['pat','con'].map(t=>{const k=t+'_'+mod,p=PLANOS[k],dest=k==='con_ind';
     return `<div class="v-plan ${dest?'dest':''}">${dest?'<span class="bd">MAIS ESCOLHIDO</span>':''}<h3>${p.tipo}</h3><div class="tipo">${p.nome}</div><div class="pr">${brl(p.valor)}<small> / mês</small></div><ul><li>Acesso total às dependências do Clube</li><li>Desconto no salão e festas</li>${p.dep?`<li>Até ${p.dep} dependentes</li>`:'<li>Plano individual, sem dependentes</li>'}</ul><button class="v-btn ${dest?'red':'out'}" type="button" data-plano="${k}">Quero este plano</button></div>`}).join('');
@@ -1092,7 +1102,7 @@ function drawSite(){
   <section id="saloes" class="v-sec v-night"><div class="v-wrap v-salao"><div class="v-big">1320<small>pessoas no Salão Principal</small></div>
    <div><p class="v-eyebrow" style="color:#fff">Salão e Quiosque</p><h2 class="v-h2">Sua festa no Itapuí.</h2><p class="v-lead">Espaço para aniversários, formaturas e confraternizações. Fale com a gente para reservar a sua data.</p>
     <div class="v-price"><small>Locação a partir de</small>${brl(1900)}</div><button class="v-btn red" type="button" data-wa="Olá! Gostaria de informações sobre o aluguel do salão de festas do Clube Itapuí." style="background:#fff;color:#b3141a;box-shadow:none">Consultar uma data →</button></div></div></section>
-  <section class="v-sec"><div class="v-wrap v-duo"><div class="v-box ev"><p class="v-eyebrow">Agenda</p><h3>Próximos eventos</h3><p>Em breve novos eventos.</p></div>
+  <section class="v-sec"><div class="v-wrap v-duo"><div class="v-box ev"><p class="v-eyebrow">Agenda</p><h3>Próximos eventos</h3>${eventosHtml()}</div>
    <div class="v-box acc"><p class="v-eyebrow" style="color:#e8353b">Para quem já é sócio</p><h3>Acesse sua conta</h3><p>Consulte seus dados, mensalidades e recibos, mostre a carteirinha digital e faça reservas.</p><button class="v-btn red" type="button" data-m="loginsocio">Área do Sócio →</button></div></div></section>
     <footer class="v-foot"><div class="v-wrap"><div class="v-brand"><img src="${IMG.escudo}" alt=""><b style="font:800 18px var(--f-disp)">Clube Itapuí</b></div><small>© 2026 Clube Itapuí · Administração · <a data-m="login">Acesso da gestão</a></small></div></footer>`;
   let i=0;const bgs=[...document.querySelectorAll('#site .v-bg i')],dots=[...document.querySelectorAll('#site .v-dots i')];
