@@ -374,9 +374,16 @@ let RECIBOS=new Map();/* último envio de recibo por e-mail de cada mensalidade 
 let ENVIOS=new Map();/* última tentativa de cobrança por e-mail de cada mensalidade (gestor/tesouraria) */
 /* ---------- dados e acesso ao banco (Supabase) ---------- */
 const TODAY=new Date();TODAY.setHours(12,0,0,0);
-const NOW_H=new Date().getHours();
+let NOW_H=new Date().getHours();
+/* relógio: a data/hora ficavam congeladas no carregamento da página (aba aberta de um dia para o outro mostrava o dia errado) */
+const DIA_CARGA=iso(TODAY);
+function relogio(){const n=new Date();NOW_H=n.getHours();const d=new Date(n);d.setHours(12,0,0,0);if(iso(d)!==iso(TODAY))TODAY.setTime(d.getTime())}
+function recarregaSeVirouDia(){relogio();if(iso(TODAY)!==DIA_CARGA&&!document.querySelector('#overlay .modal'))location.reload()}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)recarregaSeVirouDia()});
+window.addEventListener('focus',recarregaSeVirouDia);
+setInterval(recarregaSeVirouDia,60000);
 /* agenda das quadras: semana de segunda a domingo, aberta toda segunda às 6h (o banco confere de novo) */
-function agendaSemana(){const n=new Date(),dow=(n.getDay()+6)%7,aberta=!(dow===0&&n.getHours()<6);const fim=new Date(TODAY);fim.setDate(fim.getDate()+6-dow);return{dow,aberta,fim,dias:aberta?7-dow:0}}
+function agendaSemana(){relogio();const n=new Date(),dow=(n.getDay()+6)%7,aberta=!(dow===0&&n.getHours()<6);const fim=new Date(TODAY);fim.setDate(fim.getDate()+6-dow);return{dow,aberta,fim,dias:aberta?7-dow:0}}
 const initials=n=>String(n||'').split(' ').filter(Boolean).slice(0,2).map(p=>p[0]).join('').toUpperCase();
 const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const DSEM=['dom','seg','ter','qua','qui','sex','sáb'];
