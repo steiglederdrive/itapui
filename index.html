@@ -75,6 +75,17 @@ tbody tr.click{cursor:pointer} tbody tr.click:hover{background:var(--bg)}
 input,select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
 label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);font-weight:500}
 .avatar{width:34px;height:34px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font:600 13px var(--f-head);flex:none}
+/* v19: fotos (carteirinha, portaria, cadastro) */
+.avatar,.cfoto,.pfoto{overflow:hidden;position:relative}[data-foto] img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.avatar.av56{width:56px;height:56px;font-size:18px}
+.card .cfoto{width:64px;height:64px;border-radius:12px;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.9);display:grid;place-items:center;font:600 20px var(--f-head);flex:none}
+.card .pess{display:flex;gap:12px;align-items:center;min-width:0}.card .bot{flex:1;margin-top:10px}.card .lcol{display:flex;flex-direction:column;justify-content:space-between;align-self:stretch;gap:8px;min-width:0}
+.pfoto{width:120px;height:120px;border-radius:14px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font:700 34px var(--f-head);flex:none}
+.sfoto{width:min(56vw,240px);height:min(56vw,240px);border-radius:20px;background:rgba(0,0,0,.25);border:4px solid #fff;display:grid;place-items:center;font:800 64px sans-serif;flex:none;overflow:hidden;position:relative}
+.ffull{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:600 48px var(--f-head);overflow:hidden}
+label.fbtn{display:inline-flex;flex-direction:row;cursor:pointer;color:inherit;font-size:inherit;font-weight:inherit;margin:0}
+label.fokrow{display:flex;flex-direction:row;gap:10px;align-items:flex-start;font-size:13px;font-weight:400;color:inherit;margin:0;cursor:pointer}label.fokrow input{width:18px;height:18px;margin:1px 0 0;flex:none}
+.fcam{position:relative;width:100%;max-width:360px;aspect-ratio:1;margin:0 auto;border-radius:14px;overflow:hidden;background:#111}.fcam video,.fcam img{width:100%;height:100%;object-fit:cover;display:block}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
 .seg button{all:unset;cursor:pointer;padding:6px 12px;font-weight:500;font-size:13px}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
@@ -135,6 +146,11 @@ label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--mu
   .g2,.cards{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:520px){.form{grid-template-columns:1fr}.hide-s{display:none}}
+/* portal do sócio no celular: "Trocar senha" e "Sair" lado a lado no cabeçalho */
+@media (max-width:520px){.pt .s-head .s-in{gap:8px}.pt .s-head .s-in>.row{flex-wrap:nowrap;gap:6px}.pt .s-head .s-btn{padding:8px 12px!important;font-size:13px}.pt .s-brand img{height:34px}.pt .s-brand b{font-size:16px;white-space:nowrap}}
+@media (max-width:380px){.pt .s-brand>div{display:none}}
+/* no celular o cartão cresce com o conteúdo (foto + QR); a altura mínima mantém a proporção de cartão */
+@media (max-width:520px){.card{aspect-ratio:auto;min-height:calc((100vw - 64px) / 1.586)}}
 @media (prefers-reduced-motion:no-preference){.panel,.card{animation:in .25s ease-out}@keyframes in{from{opacity:.0;transform:translateY(4px)}to{opacity:1;transform:none}}}
 /* ===== modelo do site do clube: página pública, login e portal ===== */
 #site,#login,#portal{background:#fff;color:#141416;font-family:var(--f-body);color-scheme:light;min-height:100vh}
@@ -444,9 +460,9 @@ async function loadAll(){
       fetchAll((a,b)=>sb.from('salao_reservas').select('*').neq('status','cancelada').order('id').range(a,b)),
       fetchAll((a,b)=>sb.from('socios_situacao').select('*').range(a,b))]);
     const sitMap=new Map(sit.map(x=>[x.titulo,x.situacao]));
-    socios=s.map(x=>({id:x.titulo,nome:x.nome,cpf:cpfFmt(x.cpf),cpfRaw:x.cpf,nasc:x.nascimento,tel:x.telefone||'',email:x.email||'',plano:x.plano,desde:x.desde,ativo:x.ativo,userId:x.user_id,status:x.ativo?(sitMap.get(x.titulo)||'ativo'):'inativo',dep:[]}));
+    socios=s.map(x=>({id:x.titulo,nome:x.nome,cpf:cpfFmt(x.cpf),cpfRaw:x.cpf,nasc:x.nascimento,tel:x.telefone||'',email:x.email||'',plano:x.plano,desde:x.desde,ativo:x.ativo,userId:x.user_id,foto:x.foto_em||null,status:x.ativo?(sitMap.get(x.titulo)||'ativo'):'inativo',dep:[]}));
     const mp=new Map(socios.map(x=>[x.id,x]));
-    d.forEach(x=>{const o=mp.get(x.titulo);if(o)o.dep.push({id:x.id,nome:x.nome,rel:x.parentesco,nasc:x.nascimento})});
+    d.forEach(x=>{const o=mp.get(x.titulo);if(o)o.dep.push({id:x.id,nome:x.nome,rel:x.parentesco,nasc:x.nascimento,foto:x.foto_em||null})});
     mens=m.map(x=>({id:x.id,sid:x.titulo,comp:String(x.competencia).slice(0,7),valor:Number(x.valor),venc:x.vencimento,pago:x.pago_em,forma:x.forma,status:(x.status==='aberta'&&x.vencimento<hj)?'atrasada':x.status}));
     ENVIOS=new Map();RECIBOS=new Map();
     if(pode('gestor','tesouraria')){const ev=await fetchAll((a,b)=>sb.from('cobranca_envios').select('mensalidade_id,status,em,tipo').order('id').range(a,b));ev.forEach(x=>(x.tipo==='recibo'?RECIBOS:ENVIOS).set(x.mensalidade_id,{status:x.status,em:x.em}))}
@@ -601,7 +617,7 @@ function vSocios(){
   return `<div class="head"><div><h1>Sócios e dependentes</h1><p>${socios.length} ${socios.length===1?'título':'títulos'}, ${nPessoas()} pessoas</p></div>${edita?'<button class="btn primary" data-a="novoSocio" type="button">Novo sócio</button>':''}</div>
   <div class="panel"><div class="row" style="margin-bottom:12px"><input id="busca" type="search" placeholder="Buscar por nome, título ou CPF" value="${esc(S.busca)}" style="flex:1;min-width:200px"></div>
   <div class="tablewrap"><table><thead><tr><th>Título</th><th>Sócio</th><th>Plano</th><th class="hide-s">Dependentes</th><th>Situação</th></tr></thead><tbody>
-  ${l.length?l.map(s=>`<tr class="click" data-a="socio" data-v="${s.id}"><td>${s.id}</td><td><div class="row" style="flex-wrap:nowrap"><div class="avatar">${initials(s.nome)}</div><div><b>${esc(s.nome)}</b><br><span class="note">sócio desde ${String(s.desde).slice(0,4)}</span></div></div></td><td>${esc((PLANOS[s.plano]||{nome:s.plano}).nome)}</td><td class="hide-s">${s.dep.length}</td><td>${sitPill(s)}</td></tr>`).join(''):`<tr><td colspan="5" class="note">${socios.length?'Nenhum sócio encontrado.':'Nenhum sócio cadastrado ainda.'}</td></tr>`}
+  ${l.length?l.map(s=>`<tr class="click" data-a="socio" data-v="${s.id}"><td>${s.id}</td><td><div class="row" style="flex-wrap:nowrap">${fotoTag('avatar',fotoPath(s.id,0),s.foto,s.nome)}<div><b>${esc(s.nome)}</b><br><span class="note">sócio desde ${String(s.desde).slice(0,4)}</span></div></div></td><td>${esc((PLANOS[s.plano]||{nome:s.plano}).nome)}</td><td class="hide-s">${s.dep.length}</td><td>${sitPill(s)}</td></tr>`).join(''):`<tr><td colspan="5" class="note">${socios.length?'Nenhum sócio encontrado.':'Nenhum sócio cadastrado ainda.'}</td></tr>`}
   </tbody></table></div></div>`;
 }
 function dlgSocio(id){
@@ -614,15 +630,18 @@ function dlgSocio(id){
    <div class="full"><div class="tag">Acesso ao portal do sócio</div>${s.userId?'<span class="pill ok">Ativo</span> <span class="note">login: CPF</span>':'<span class="pill mute">Ainda não criado</span>'}</div></div>
    <div><div class="row spread" style="margin-bottom:6px"><h3>Dependentes</h3>${edita&&s.ativo?'<button class="btn sm" data-a="addDep" type="button">Adicionar</button>':''}</div>
    <div id="depList">${s.dep.length?s.dep.map(d=>`<div class="row spread" style="padding:7px 0;border-top:1px solid var(--line)"><span><b>${esc(d.nome)}</b><br><span class="note">${esc(d.rel)}, ${idade(d.nasc)} anos</span></span>${edita?`<button class="btn sm danger" data-a="rmDep" data-v="${d.id}" type="button">Remover</button>`:''}</div>`).join(''):'<p class="note" style="margin:0">Nenhum dependente.</p>'}</div></div>
+   <div><h3 style="margin-bottom:6px">Fotos da carteirinha</h3><p class="note" style="margin:0 0 4px">Aparecem para o porteiro ao ler o QR.</p>
+   ${pessoasDe(s).map(x=>`<div class="row spread" style="padding:7px 0;border-top:1px solid var(--line);flex-wrap:nowrap"><span class="row" style="flex-wrap:nowrap">${fotoDe(s.id,x,'avatar av56')}<span><b>${esc(x.nome)}</b><br><span class="note">${esc(x.rel)} · ${x.foto?'com foto':'<span style="color:var(--bad)">sem foto</span>'}</span></span></span>${edita?`<button class="btn sm" data-a="foto" data-v="${x.depId}" type="button">${x.foto?'Trocar foto':'Adicionar foto'}</button>`:''}</div>`).join('')}</div>
    <div class="row" style="flex-wrap:wrap"><button class="btn primary" data-a="verCart" type="button">Ver carteirinha</button>
    ${edita?`<button class="btn" data-a="editSocio" type="button">Editar dados</button>${s.ativo?`<button class="btn" data-a="acessoSocio" type="button">${s.userId?'Gerar nova senha':'Criar acesso ao portal'}</button>`:''}<button class="btn ${s.ativo?'danger':''}" data-a="ativoSocio" type="button">${s.ativo?'Inativar sócio':'Reativar sócio'}</button>`:''}</div>`,
   d=>{d.addEventListener('click',async e=>{
     const b=e.target.closest('button');if(!b)return;
     if(b.dataset.x!==undefined)return closeM();
     const a=b.dataset.a;
-    if(a==='rmDep'){if(!confirm('Remover este dependente?'))return;if(await exec(async()=>{const {error}=await sb.from('dependentes').delete().eq('id',+b.dataset.v);if(error)throw error},'Dependente removido')){dlgSocio(id);render()}}
+    if(a==='rmDep'){if(!confirm('Remover este dependente?'))return;if(await exec(async()=>{const dv=+b.dataset.v,dd=s.dep.find(x=>x.id===dv);const {error}=await sb.from('dependentes').delete().eq('id',dv);if(error)throw error;if(dd&&dd.foto){try{await sb.storage.from('fotos').remove([fotoPath(id,dv)])}catch(e){}}},'Dependente removido')){dlgSocio(id);render()}}
     if(a==='addDep'){const lim=p.dep;if(s.dep.length>=lim){toast(lim?('Limite de '+lim+' dependentes neste plano'):'O plano Individual não inclui dependentes');return}dlgDep(id)}
     if(a==='verCart'){S.cart=id;S.cartDep=-1;closeM();go('carteirinha')}
+    if(a==='foto')dlgFoto(id,+b.dataset.v);
     if(a==='editSocio')dlgEditar(id);
     if(a==='acessoSocio')criarAcesso(s);
     if(a==='ativoSocio'){const novo=!s.ativo;if(!confirm((novo?'Reativar':'Inativar')+' o sócio '+s.nome+'?'+(novo?'':'\nEle perde o acesso ao portal e às reservas.')))return;if(await exec(async()=>{const {error}=await sb.from('socios').update({ativo:novo}).eq('titulo',id);if(error)throw error},novo?'Sócio reativado':'Sócio inativado')){dlgSocio(id);render()}}
@@ -696,8 +715,69 @@ function qrSvg(texto){
   const q=window.qrcode(0,'M');q.addData(String(texto));q.make();
   return q.createSvgTag({cellSize:4,margin:0,scalable:true}).replace('<svg','<svg class="qr" role="img" aria-label="Código de acesso"');
 }
-const pessoasDe=s=>[{nome:s.nome,rel:'Titular',nasc:s.nasc,idx:-1,depId:0},...s.dep.map((d,i)=>({...d,idx:i,depId:d.id}))];
+const pessoasDe=s=>[{nome:s.nome,rel:'Titular',nasc:s.nasc,idx:-1,depId:0,foto:s.foto},...s.dep.map((d,i)=>({...d,idx:i,depId:d.id}))];
 const codCart=(s,p)=>s.id+'-'+String(p.depId).padStart(2,'0');
+/* ---------- FOTOS (v19): bucket privado "fotos", caminho <titulo>/<dependente ou 0>.jpg ---------- */
+const fotoPath=(sid,depId)=>sid+'/'+(depId||0)+'.jpg';
+const FOTO_URL=new Map();
+async function fotoUrl(path,ver){
+  if(!path||!ver||!sb)return null;const k=path+'|'+ver,c=FOTO_URL.get(k);if(c&&c.exp>Date.now())return c.url;
+  const {data,error}=await sb.storage.from('fotos').createSignedUrl(path,300);if(error||!data)return null;
+  FOTO_URL.set(k,{url:data.signedUrl,exp:Date.now()+240e3});return data.signedUrl}
+/* marca um lugar para a foto; quem carrega a imagem é hidrataFotos(), chamada sozinha quando o HTML muda */
+function fotoTag(cls,path,ver,nome){return ver?`<span class="${cls}" data-foto="${esc(path)}" data-ver="${esc(ver)}">${initials(nome)}</span>`:`<span class="${cls}">${initials(nome)}</span>`}
+const fotoDe=(sid,p,cls)=>fotoTag(cls,fotoPath(sid,p.depId),p.foto,p.nome);
+function hidrataFotos(){document.querySelectorAll('[data-foto]:not([data-fok])').forEach(async el=>{el.dataset.fok='1';
+  const u=await fotoUrl(el.dataset.foto,el.dataset.ver);if(!u||!el.isConnected)return;const im=new Image();im.alt='';im.onload=()=>el.appendChild(im);im.src=u})}
+new MutationObserver(hidrataFotos).observe(document.body,{childList:true,subtree:true});
+/* recorta no centro em quadrado, reduz para 480 px e gera JPEG (~30-60 KB) */
+function fotoJpeg(src){const w=src.videoWidth||src.naturalWidth||src.width,h=src.videoHeight||src.naturalHeight||src.height,l=Math.min(w,h);
+  const cv=document.createElement('canvas');cv.width=cv.height=480;const cx=cv.getContext('2d');cx.drawImage(src,(w-l)/2,(h-l)/2,l,l,0,0,480,480);
+  return new Promise((ok,no)=>cv.toBlob(b=>b?ok(b):no(new Error('Não foi possível processar a foto')),'image/jpeg',.82))}
+function dlgFoto(sid,depId){
+  const s=byId(sid);if(!s)return closeM();const p=pessoasDe(s).find(x=>x.depId===depId);if(!p)return dlgSocio(sid);
+  let stream=null,blob=null,facing='user';
+  const parar=()=>{if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}};
+  modal(`<div class="row spread"><h2>Foto da carteirinha</h2><button class="btn sm" data-x type="button">Voltar</button></div>
+   <p class="note" style="margin:0">${esc(p.nome)} · ${esc(p.rel)}. Rosto de frente, bem iluminado, sem boné ou óculos escuros.</p>
+   <div class="fcam" id="fcam">${p.foto?fotoDe(sid,p,'ffull'):'<div style="height:100%;display:grid;place-items:center;color:#aaa;font-size:14px;text-align:center;padding:20px">Use a câmera ou escolha um arquivo</div>'}</div>
+   <div class="row" style="justify-content:center;flex-wrap:wrap"><button class="btn" data-a="cam" type="button">Usar a câmera</button><button class="btn" data-a="vira" type="button" hidden>Virar câmera</button><button class="btn primary" data-a="tirar" type="button" hidden>Tirar foto</button><label class="btn fbtn">Escolher arquivo<input id="fArq" type="file" accept="image/*" hidden></label></div>
+   <label class="fokrow"><input id="fOk" type="checkbox"><span>A pessoa (ou o responsável, se for menor de idade) autorizou o uso da foto <b>somente para identificação na portaria</b>.</span></label>
+   <div class="row spread">${p.foto?'<button class="btn danger" data-a="rm" type="button">Remover foto</button>':'<span></span>'}<button class="btn primary" data-a="salvar" type="button" disabled>Salvar foto</button></div>`,
+  d=>{
+    const box=$('#fcam',d),bS=$('[data-a=salvar]',d),bT=$('[data-a=tirar]',d),bV=$('[data-a=vira]',d),ck=$('#fOk',d);
+    const pronto=()=>{bS.disabled=!(blob&&ck.checked)};ck.addEventListener('change',pronto);
+    const mostra=b=>{blob=b;parar();bT.hidden=bV.hidden=true;box.innerHTML=`<img alt="Pré-visualização" src="${URL.createObjectURL(b)}">`;pronto()};
+    const abreCam=async()=>{parar();
+      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('Este navegador não permite usar a câmera. Use "Escolher arquivo".');return}
+      try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:960},height:{ideal:960}},audio:false})}
+      catch(e){toast('Câmera bloqueada ou indisponível. Use "Escolher arquivo".');return}
+      box.innerHTML='<video playsinline muted autoplay></video>';const v=$('video',box);v.srcObject=stream;if(facing==='user')v.style.transform='scaleX(-1)';try{await v.play()}catch(e){}
+      bT.hidden=bV.hidden=false;blob=null;pronto()};
+    $('#fArq',d).addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
+      const im=new Image();im.onload=()=>fotoJpeg(im).then(mostra,er=>toast(er.message));im.onerror=()=>toast('Arquivo de imagem inválido');im.src=URL.createObjectURL(f)});
+    d.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;
+      if(b.dataset.x!==undefined){parar();return dlgSocio(sid)}
+      const a=b.dataset.a;
+      if(a==='cam')abreCam();
+      if(a==='vira'){facing=facing==='user'?'environment':'user';abreCam()}
+      if(a==='tirar'){const v=$('video',box);if(v&&v.videoWidth)fotoJpeg(v).then(mostra,er=>toast(er.message))}
+      if(a==='salvar'&&blob){const path=fotoPath(sid,depId);
+        const ok=await exec(async()=>{
+          const up=await sb.storage.from('fotos').upload(path,blob,{upsert:true,contentType:'image/jpeg',cacheControl:'300'});if(up.error)throw up.error;
+          const q=depId?sb.from('dependentes').update({foto_em:new Date().toISOString()}).eq('id',depId):sb.from('socios').update({foto_em:new Date().toISOString()}).eq('titulo',sid);
+          const {error}=await q;if(error)throw error},'Foto salva');
+        if(ok){parar();render();dlgSocio(sid)}}
+      if(a==='rm'){if(!confirm('Remover a foto de '+p.nome+'?'))return;
+        const ok=await exec(async()=>{
+          const rm=await sb.storage.from('fotos').remove([fotoPath(sid,depId)]);if(rm.error)throw rm.error;
+          const q=depId?sb.from('dependentes').update({foto_em:null}).eq('id',depId):sb.from('socios').update({foto_em:null}).eq('titulo',sid);
+          const {error}=await q;if(error)throw error},'Foto removida');
+        if(ok){parar();render();dlgSocio(sid)}}
+    });
+    new MutationObserver((_,o)=>{if(!d.isConnected){parar();o.disconnect()}}).observe(document.body,{childList:true,subtree:true});
+  });
+}
 function vCart(){
   if(pode('portaria')&&!pode('gestor','secretaria'))return vPortaria();
   if(!socios.length)return `<div class="head"><div><h1>Carteirinha de acesso</h1></div></div>`+vazioMsg('Nenhum sócio cadastrado.','Cadastre um sócio para emitir a carteirinha.');
@@ -710,12 +790,11 @@ function vCart(){
    <label>Sócio<select id="cartSel">${socios.map(x=>`<option value="${x.id}" ${x.id===S.cart?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></label></div>
   <div class="cards"><div>
    <div class="card ${ok?'':'off'}"><div class="top"><span style="display:flex;align-items:center"><img src="${IMG.escudo}" alt="">Clube Itapuí</span><span style="font:500 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase">${pl.tipo} · ${pl.mod}</span></div>
-    <div><div class="nm">${esc(p.nome)}</div><div style="font-size:12px;opacity:.9;margin-top:2px">${esc(p.rel)}</div></div>
-    <div class="bot"><div class="mt"><span>Título<br><b>${num}</b></span><span>Sócio desde<br><b>${String(s.desde).slice(0,4)}</b></span><span>Situação<br><b>${ok?'Em dia':s.status==='inativo'?'Inativo':'Bloqueada'}</b></span></div>${qrSvg('ITAPUI:'+num)}</div></div>
+    <div class="bot"><div class="lcol"><div class="pess">${fotoDe(s.id,p,'cfoto')}<div><div class="nm">${esc(p.nome)}</div><div style="font-size:12px;opacity:.9;margin-top:2px">${esc(p.rel)}</div></div></div><div class="mt"><span>Título<br><b>${num}</b></span><span>Sócio desde<br><b>${String(s.desde).slice(0,4)}</b></span><span>Situação<br><b>${ok?'Em dia':s.status==='inativo'?'Inativo':'Bloqueada'}</b></span></div></div>${qrSvg('ITAPUI:'+num)}</div></div>
    <p class="note" style="margin-top:10px">Na portaria, o código (QR ou número) é consultado na hora e mostra se o acesso está liberado.</p>
   </div>
   <div class="panel"><h3 style="margin-bottom:10px">Quem usa esta carteirinha</h3><div class="who">
-   ${pessoas.map(x=>`<button type="button" data-a="cd" data-v="${x.idx}" aria-pressed="${x.idx===p.idx}"><div class="avatar">${initials(x.nome)}</div><span><b>${esc(x.nome)}</b><br><span class="note">${esc(x.rel)}, ${idade(x.nasc)} anos</span></span></button>`).join('')}</div>
+   ${pessoas.map(x=>`<button type="button" data-a="cd" data-v="${x.idx}" aria-pressed="${x.idx===p.idx}">${fotoDe(s.id,x,'avatar')}<span><b>${esc(x.nome)}</b><br><span class="note">${esc(x.rel)}, ${idade(x.nasc)} anos</span></span></button>`).join('')}</div>
    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)" class="row spread"><span>Acesso na portaria</span>${ok?'<span class="pill ok">Liberado</span>':s.status==='inativo'?'<span class="pill mute">Sócio inativo</span>':'<span class="pill bad">Bloqueado por inadimplência</span>'}</div>
    <div class="row" style="margin-top:12px"><button class="btn" data-a="cpCod" data-v="${num}" type="button">Copiar código</button></div></div></div>`;
 }
@@ -725,7 +804,7 @@ function vPortaria(){
   if(S.acessos===undefined){S.acessos=[];carregarAcessos()}
   let res='';
   if(r===null)res='<p style="margin:14px 0 0"><span class="pill bad">Carteirinha não encontrada</span></p>';
-  else if(r){const ok=r.liberado!==undefined?r.liberado:r.situacao==='ativo';res=`<div style="margin-top:16px;padding:16px;border-radius:14px;border:2px solid var(${ok?'--ok':'--bad'})"><div class="row spread"><span style="font:700 22px var(--f-head)">${esc(r.nome)}</span>${ok?'<span class="pill ok">Acesso liberado</span>':'<span class="pill bad">Acesso NEGADO'+(r.motivo?' ('+esc(r.motivo)+')':'')+'</span>'}</div><p class="note" style="margin:6px 0 0">${esc(r.relacao)} · título ${r.titulo} · ${esc(r.plano)} · sócio desde ${fmtData(r.desde).slice(6)}</p></div>`}
+  else if(r){const ok=r.liberado!==undefined?r.liberado:r.situacao==='ativo';res=`<div style="margin-top:16px;padding:16px;border-radius:14px;border:2px solid var(${ok?'--ok':'--bad'});display:flex;gap:16px;align-items:center;flex-wrap:wrap">${fotoTag('pfoto',r.foto,r.foto_em,r.nome)}<div style="flex:1;min-width:200px">${r.foto?'':'<p class="note" style="margin:0 0 6px;color:var(--bad)">Sem foto cadastrada: confira um documento.</p>'}<div class="row spread"><span style="font:700 22px var(--f-head)">${esc(r.nome)}</span>${ok?'<span class="pill ok">Acesso liberado</span>':'<span class="pill bad">Acesso NEGADO'+(r.motivo?' ('+esc(r.motivo)+')':'')+'</span>'}</div><p class="note" style="margin:6px 0 0">${esc(r.relacao)} · título ${r.titulo} · ${esc(r.plano)} · sócio desde ${fmtData(r.desde).slice(6)}</p></div></div>`}
   const ac=S.acessos||[];
   return `<div class="head"><div><h1>Portaria</h1><p>Leia o QR da carteirinha com a câmera ou digite o código (exemplo: 1001-00).</p></div></div>
   <div class="panel"><button class="btn primary" data-a="scan" type="button" style="width:100%;padding:16px;font-size:18px;margin-bottom:14px">Ler QR com a câmera</button>
@@ -767,12 +846,13 @@ async function abrirScanner(){
   const st=SCAN={stream,ov,wl,busy:false,fim:false,ult:'',ultT:0,timer:null};
   const fechar=()=>{st.fim=true;clearTimeout(st.timer);stream.getTracks().forEach(t=>t.stop());try{wl&&wl.release()}catch(e){}ov.remove();SCAN=null;carregarAcessos().then(render)};
   ov.querySelector('#scanX').onclick=fechar;
-  const mostrar=(ok,nome,sub,motivo)=>{
+  const mostrar=(ok,nome,sub,motivo,foto,fotoEm)=>{
     res.style.display='flex';res.style.background=ok?'#1d7f4a':'#b3261e';
-    res.innerHTML=`<div style="font:800 56px/1.1 sans-serif">${ok?'LIBERADO':'NEGADO'}</div><div style="font:700 30px/1.2 sans-serif">${esc(nome||'')}</div><div style="font-size:18px;opacity:.95">${esc(sub||'')}</div>${motivo?`<div style="font:600 22px sans-serif;background:rgba(0,0,0,.25);padding:8px 16px;border-radius:12px">${esc(motivo)}</div>`:''}<div style="font-size:14px;opacity:.8;margin-top:12px">Toque para ler o próximo</div>`;
+    const temF=foto!==undefined;
+    res.innerHTML=`<div style="font:800 56px/1.1 sans-serif">${ok?'LIBERADO':'NEGADO'}</div>${temF?fotoTag('sfoto',foto,fotoEm,nome):''}${temF&&!fotoEm?'<div style="font:600 16px sans-serif;background:rgba(0,0,0,.25);padding:6px 12px;border-radius:10px">Sem foto cadastrada: confira um documento</div>':''}<div style="font:700 30px/1.2 sans-serif">${esc(nome||'')}</div><div style="font-size:18px;opacity:.95">${esc(sub||'')}</div>${motivo?`<div style="font:600 22px sans-serif;background:rgba(0,0,0,.25);padding:8px 16px;border-radius:12px">${esc(motivo)}</div>`:''}<div style="font-size:14px;opacity:.8;margin-top:12px">Toque para ler o próximo</div>`;
     try{navigator.vibrate&&navigator.vibrate(ok?80:[200,80,200])}catch(e){}
     const volta=()=>{res.style.display='none';st.busy=false;st.ultT=Date.now();clearTimeout(st.t2)};
-    res.onclick=volta;st.t2=setTimeout(volta,ok?2500:4000);
+    res.onclick=volta;st.t2=setTimeout(volta,ok&&!fotoEm?2500:4500);
   };
   const tratar=async txt=>{
     const c=lerCodigo(txt);
@@ -781,7 +861,7 @@ async function abrirScanner(){
     if(error){mostrar(false,'Erro na consulta',msgErro(error),'Use o código digitado');return}
     if(!data){mostrar(false,'Carteirinha não encontrada','','');return}
     const mot=data.motivo?data.motivo.charAt(0).toUpperCase()+data.motivo.slice(1):'';
-    mostrar(!!data.liberado,data.nome,data.relacao+' · título '+data.titulo+' · '+(data.plano||''),mot);
+    mostrar(!!data.liberado,data.nome,data.relacao+' · título '+data.titulo+' · '+(data.plano||''),mot,data.foto||null,data.foto_em||null);
   };
   const ciclo=async()=>{
     if(st.fim)return;
@@ -1230,7 +1310,7 @@ function drawPortal(){
   const rs=reservas.filter(r=>r.sid===s.id&&r.data>=iso(TODAY)).sort((a,b)=>(a.data+String(a.h).padStart(2,'0')).localeCompare(b.data+String(b.h).padStart(2,'0')));
   $('#portal').innerHTML=`<div class="pt"><header class="s-head"><div class="s-in"><div class="s-brand" data-m="site"><img src="${IMG.escudo}" alt=""><div><b>Clube Itapuí</b><small>PORTAL DO SÓCIO</small></div></div><div class="row" style="gap:8px"><button class="s-btn line" style="width:auto" type="button" data-a="pw">Trocar senha</button><button class="s-btn dark" type="button" id="sairBtn">Sair</button></div></div></header>
   <main><h1>Olá, ${esc(s.nome.split(' ')[0])}</h1><p class="sub">Título ${s.id} · ${esc(pl.nome)} · ${ok?'situação em dia':s.status==='inativo'?'cadastro inativo':'há mensalidades em atraso'}</p>
-  <div class="cards"><div><div class="card ${ok?'':'off'}"><div class="top"><span style="display:flex;align-items:center"><img src="${IMG.escudo}" alt="">Clube Itapuí</span><span style="font:500 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase">${pl.tipo} · ${pl.mod}</span></div><div><div class="nm">${esc(p.nome)}</div><div style="font-size:12px;opacity:.9;margin-top:2px">${esc(p.rel)}</div></div><div class="bot"><div class="mt"><span>Título<br><b>${num}</b></span><span>Sócio desde<br><b>${String(s.desde).slice(0,4)}</b></span><span>Situação<br><b>${ok?'Em dia':'Bloqueada'}</b></span></div><div id="qrDin" data-dep="${p.depId}" style="flex:none;text-align:center"><span class="qr" style="display:block;margin:0 auto"></span></div></div></div>
+  <div class="cards"><div><div class="card ${ok?'':'off'}"><div class="top"><span style="display:flex;align-items:center"><img src="${IMG.escudo}" alt="">Clube Itapuí</span><span style="font:500 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase">${pl.tipo} · ${pl.mod}</span></div><div class="bot"><div class="lcol"><div class="pess">${fotoDe(s.id,p,'cfoto')}<div><div class="nm">${esc(p.nome)}</div><div style="font-size:12px;opacity:.9;margin-top:2px">${esc(p.rel)}</div></div></div><div class="mt"><span>Título<br><b>${num}</b></span><span>Sócio desde<br><b>${String(s.desde).slice(0,4)}</b></span><span>Situação<br><b>${ok?'Em dia':'Bloqueada'}</b></span></div></div><div id="qrDin" data-dep="${p.depId}" style="flex:none;text-align:center"><span class="qr" style="display:block;margin:0 auto"></span></div></div></div>
    ${pessoas.length>1?`<div class="row" style="margin-top:12px">${pessoas.map(x=>`<button class="s-btn ${x.idx===p.idx?'dark':'line'}" style="width:auto;padding:6px 12px;font-size:12.5px" type="button" data-pd="${x.idx}">${esc(x.nome.split(' ')[0])}</button>`).join('')}</div>`:''}</div>
   <div><div class="box"><h3 style="margin:0 0 8px">Mensalidades</h3>${ms.length?`<table><thead><tr><th>Competência</th><th>Vencimento</th><th>Valor</th><th>Situação</th></tr></thead><tbody>${ms.map(m=>{const[c,t]=pillM(m.status);return `<tr><td>${m.comp.slice(5)}/${m.comp.slice(0,4)}</td><td>${fmtData(m.venc)}</td><td>${brl(m.valor)}</td><td><span class="pill ${c}">${t}</span></td></tr>`}).join('')}</tbody></table>`:'<p style="margin:0;color:#71717a">Nenhuma mensalidade lançada ainda.</p>'}</div>
   <div class="box"><h3 style="margin:0 0 8px">Meus aluguéis (salão e quiosque)</h3>${als.length?als.map(x=>`<div class="row spread" style="padding:7px 0;border-top:1px solid #f0f0f2"><span><b>${fmtData(x.data).slice(0,5)}</b> · ${ESP[x.esp]||'Salão'} · ${esc(x.evento)}</span><span class="pill ${STP[x.status][0]}">${STP[x.status][1]}</span></div>`).join(''):'<p style="margin:0;color:#71717a">Nenhum aluguel marcado.</p>'}</div>
